@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=45", "wheel", "setuptools_scm>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "seedhash"
+version = "0.1.0"
+description = "Deterministic seed generation from string inputs using MD5 hashing"
+readme = "README.md"
+authors = [
+    {name = "melhzy", email = "your.email@example.com"}
+]
+license = {text = "MIT"}
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering",
+]
+keywords = ["seed", "random", "hash", "reproducible", "deterministic"]
+requires-python = ">=3.7"
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/melhzy/seedhash"
+Repository = "https://github.com/melhzy/seedhash"
+Issues = "https://github.com/melhzy/seedhash/issues"
+
+[tool.setuptools]
+packages = ["seedhash"]
