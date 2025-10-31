@@ -157,8 +157,14 @@ SeedHashGenerator <- R6::R6Class(
       
       # Convert hexadecimal to integer
       # R's integer range is smaller than Python's, so we'll use modulo to fit
-      # Convert first 8 hex characters to avoid overflow
-      seed <- strtoi(substr(hash_value, 1, 8), base = 16)
+      # Convert first 7 hex characters to safely stay within integer range
+      # (7 hex digits = 28 bits, well within 32-bit signed integer range)
+      seed <- strtoi(substr(hash_value, 1, 7), base = 16)
+      
+      # Ensure it's a valid integer (not NA)
+      if (is.na(seed)) {
+        stop("Failed to generate valid seed from input string")
+      }
       
       return(seed)
     }
