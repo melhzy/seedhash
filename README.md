@@ -307,6 +307,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Inspired by the need for reproducible random number generation in scientific computing
 - Built with Python's standard library for maximum compatibility
 
+## Reference
+
+- Rivest, R. (1992). The MD5 Message-Digest Algorithm (RFC 1321). MIT Laboratory for Computer Science and RSA Data Security, Inc. https://datatracker.ietf.org/doc/html/rfc1321
+- Python Software Foundation. (2024). random — Generate pseudo-random numbers. In Python Standard Library (Python 3.x documentation). https://docs.python.org/3/library/random.html
 ---
 
 **Note**: This library uses MD5 hashing for seed generation. MD5 is suitable for non-cryptographic purposes like seed generation. Do not use this library for cryptographic or security-sensitive applications.
