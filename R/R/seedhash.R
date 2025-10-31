@@ -43,12 +43,12 @@ SeedHashGenerator <- R6::R6Class(
     #' @description
     #' Initialize the SeedHashGenerator
     #' @param input_string The string to hash for seed generation
-    #' @param min_value Minimum value for random number range (default: 0)
-    #' @param max_value Maximum value for random number range (default: 2^31 - 1)
+    #' @param min_value Minimum value for random number range (default: -1e9)
+    #' @param max_value Maximum value for random number range (default: 1e9)
     #' @return A new SeedHashGenerator object
     initialize = function(input_string, 
-                         min_value = 0, 
-                         max_value = 2^31 - 1) {
+                         min_value = -1e9, 
+                         max_value = 1e9) {
       # Validate input_string
       if (!is.character(input_string) || length(input_string) != 1) {
         stop("input_string must be a single character string")
@@ -59,18 +59,34 @@ SeedHashGenerator <- R6::R6Class(
       }
       
       self$input_string <- input_string
-      self$min_value <- as.integer(min_value)
-      self$max_value <- as.integer(max_value)
       
-      # Validate range
+      # Validate range BEFORE converting to integer
       if (!is.numeric(min_value) || !is.numeric(max_value)) {
         stop("min_value and max_value must be numeric")
       }
       
-      if (self$min_value >= self$max_value) {
-        stop(sprintf("min_value (%d) must be less than max_value (%d)",
-                    self$min_value, self$max_value))
+      if (min_value >= max_value) {
+        stop(sprintf("min_value (%.0f) must be less than max_value (%.0f)",
+                    min_value, max_value))
       }
+      
+      # Check if values are within R's integer range
+      max_int <- 2^31 - 1
+      min_int <- -2^31
+      
+      if (min_value < min_int || min_value > max_int) {
+        stop(sprintf("min_value (%.0f) is outside R's integer range [%d, %d]. Use values between -2,147,483,648 and 2,147,483,647",
+                    min_value, min_int, max_int))
+      }
+      
+      if (max_value < min_int || max_value > max_int) {
+        stop(sprintf("max_value (%.0f) is outside R's integer range [%d, %d]. Use values between -2,147,483,648 and 2,147,483,647",
+                    max_value, min_int, max_int))
+      }
+      
+      # Now safe to convert to integer
+      self$min_value <- as.integer(min_value)
+      self$max_value <- as.integer(max_value)
       
       # Generate the seed from the input string
       self$seed_number <- private$generate_seed()
@@ -95,8 +111,16 @@ SeedHashGenerator <- R6::R6Class(
       set.seed(self$seed_number)
       
       # Generate random numbers
+      # Calculate range size - handle potential integer overflow
+      range_size <- as.numeric(self$max_value) - as.numeric(self$min_value) + 1
+      
+      # Check if range is too large for sample.int
+      if (range_size > .Machine$integer.max) {
+        stop("Range is too large. Maximum range size is ", .Machine$integer.max)
+      }
+      
       random_numbers <- sample.int(
-        n = self$max_value - self$min_value + 1,
+        n = as.integer(range_size),
         size = count,
         replace = TRUE
       ) + self$min_value - 1
