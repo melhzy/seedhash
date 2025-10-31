@@ -1,42 +1,70 @@
 # SeedHash
 
 [![Python Version](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/)
+[![R Version](https://img.shields.io/badge/R-3.5+-blue.svg)](https://www.r-project.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**SeedHash** is a Python library for generating deterministic random seeds from string inputs using MD5 hashing. It's perfect for creating reproducible experiments, simulations, and any scenario where you need consistent random number generation across different runs.
+**SeedHash** is a library for generating deterministic random seeds from string inputs using MD5 hashing. Available in both **Python** and **R**, it's perfect for creating reproducible experiments, simulations, and any scenario where you need consistent random number generation across different runs.
+
+## 📁 Repository Structure
+
+```
+seedhash/
+├── Python/              # Python implementation
+│   ├── seedhash/        # Python package
+│   ├── examples/        # Python examples
+│   └── README.md        # Python documentation
+│
+├── R/                   # R implementation  
+│   ├── R/               # R package source
+│   ├── tests/           # R tests
+│   ├── examples/        # R examples
+│   └── README.md        # R documentation
+│
+├── PYTHON_TO_R_GUIDE.md # Conversion guide for developers
+└── README.md            # This file
+```
 
 ## Features
 
 - 🎯 **Deterministic**: Same input string always produces the same sequence of random numbers
 - 🔧 **Configurable**: Customize the range of generated random numbers
 - ✅ **Type-Safe**: Comprehensive error handling and input validation
-- 📦 **Lightweight**: No external dependencies beyond Python standard library
+- 📦 **Lightweight**: Minimal dependencies (Python: none, R: R6 + digest)
 - 🚀 **Easy to Use**: Simple, intuitive API
+- 🔄 **Cross-Language**: Available in both Python and R
 
 ## Installation
 
-### From GitHub (Development)
+### Python
 
 ```bash
-pip install git+https://github.com/melhzy/seedhash.git
+# From GitHub
+pip install git+https://github.com/melhzy/seedhash.git#subdirectory=Python
+
+# From local directory
+cd Python
+pip install .
 ```
 
-### Local Installation
+See [Python/README.md](Python/README.md) for detailed instructions.
 
-```bash
-git clone https://github.com/melhzy/seedhash.git
-cd seedhash
-pip install -e .
+### R
+
+```r
+# Recommended: Using pak
+install.packages("pak", repos = "https://r-lib.github.io/p/pak/stable/")
+pak::pkg_install("github::melhzy/seedhash/R")
+
+# Alternative: Using devtools
+devtools::install_github("melhzy/seedhash", subdir = "R")
 ```
 
-### Future PyPI Installation
-
-```bash
-# Once published to PyPI
-pip install seedhash
-```
+See [R/INSTALL.md](R/INSTALL.md) for detailed instructions.
 
 ## Quick Start
+
+### Python
 
 ```python
 from seedhash import SeedHashGenerator
@@ -47,6 +75,25 @@ generator = SeedHashGenerator("my_experiment_name")
 # Generate 10 random seeds
 seeds = generator.generate_seeds(10)
 print(seeds)
+
+# Get the MD5 hash
+print(generator.get_hash())
+```
+
+### R
+
+```r
+library(seedhash)
+
+# Create a generator
+generator <- SeedHashGenerator$new("my_experiment_name")
+
+# Generate 10 random seeds
+seeds <- generator$generate_seeds(10)
+print(seeds)
+
+# Get the MD5 hash
+cat(generator$get_hash(), "\n")
 ```
 
 ## Usage Examples
