@@ -405,19 +405,22 @@ test_that("Valid large range works", {
 
 ## 6. Packaging & Distribution
 
-### Python Package Structure
+### Python Package Structure (Updated)
 
 ```
-seedhash/
+Python/
 ├── seedhash/
 │   ├── __init__.py          # Exports
 │   └── core.py              # Main class
-├── tests/
-│   └── test_seedhash.py     # Tests
+├── examples/
+│   └── demo.py              # Usage examples
+├── dist/                    # Built distributions
+├── seedhash.egg-info/       # Package metadata
+├── base.py                  # Original standalone script
 ├── setup.py                 # Package config
 ├── pyproject.toml           # Modern config
-├── README.md
-└── LICENSE
+├── requirements.txt         # Dependencies (none)
+└── README.md                # Python documentation
 ```
 
 **setup.py:**
@@ -433,29 +436,55 @@ setup(
 )
 ```
 
-**Installation:**
+**Installation (Updated Paths):**
 ```bash
+# From GitHub
+pip install git+https://github.com/melhzy/seedhash.git#subdirectory=Python
+
+# Local
+cd Python
 pip install .
-# or
-pip install git+https://github.com/melhzy/seedhash.git
 ```
 
-### R Package Structure
+### R Package Structure (Updated)
 
 ```
 R/
 ├── R/
-│   └── seedhash.R           # Main class
-├── man/                     # Generated docs
+│   └── seedhash.R           # Main R6 class
+├── man/                     # Generated docs (roxygen2)
 │   └── *.Rd
 ├── tests/
 │   └── testthat/
 │       └── test-seedhash.R
+├── examples/
+│   └── example_usage.R
 ├── DESCRIPTION              # Package metadata
-├── NAMESPACE                # Exports (generated)
-├── LICENSE
-├── README.md
-└── INSTALL.md
+├── NAMESPACE                # Exports (auto-generated)
+├── LICENSE                  # MIT License
+├── NEWS.md                  # Version history
+├── README.md                # R package docs
+├── INSTALL.md               # Installation guide
+├── seedhash_0.1.0.tar.gz    # Built package for CRAN
+│
+├── Test & Installation Files:
+│   ├── fix_and_install.R    # Clean install script
+│   ├── install_with_pak.R   # pak installation
+│   ├── test_*.R             # Various test scripts
+│   └── quick_*.R            # Quick tests
+│
+├── CRAN Submission Files:
+│   ├── CRAN_SUBMISSION.md
+│   ├── cran-comments.md
+│   ├── SUBMISSION_STATUS.md
+│   └── submit_to_cran.R
+│
+└── Documentation:
+    ├── INTEGER_RANGE_SOLUTION.md
+    ├── INSTALL_SOLUTION.md
+    ├── GITHUB_INSTALL_TROUBLESHOOTING.md
+    ├── VSCODE_R_SETUP.md
+    └── README_PACKAGE.md
 ```
 
 **DESCRIPTION:**
@@ -478,76 +507,146 @@ Suggests:
     testthat (>= 3.0.0)
 ```
 
-**Installation:**
+**Installation (Updated - pak recommended):**
 ```r
-# Method 1: pak (recommended)
+# ✅ Method 1: pak (RECOMMENDED)
+install.packages("pak", repos = "https://r-lib.github.io/p/pak/stable/")
 pak::pkg_install("github::melhzy/seedhash/R")
 
-# Method 2: devtools
+# Method 2: devtools (may have SSL/PAT issues)
 devtools::install_github("melhzy/seedhash", subdir = "R")
 
-# Method 3: CRAN (after submission)
+# Method 3: Local
+devtools::install("path/to/seedhash/R")
+
+# Method 4: CRAN (after submission)
 install.packages("seedhash")
 ```
 
+**Why pak over devtools?**
+- ✅ Handles GitHub authentication better (no PAT issues)
+- ✅ No SSL certificate problems on Windows
+- ✅ Faster dependency resolution
+- ✅ Modern and actively maintained
+- ✅ Works reliably with subdirectory installations
+
 ---
 
-## 7. Lessons Learned
+## 7. Lessons Learned (Updated with Production Experience)
 
 ### Critical Differences to Remember
 
-1. **Integer Limits**
+1. **Integer Limits** ⚠️ CRITICAL
    - Python: Unlimited ✅
    - R: ±2.1 billion ⚠️
-   - Solution: Validate BEFORE conversion, use smaller defaults
+   - Solution: Validate BEFORE conversion, use smaller defaults (-1e9 to 1e9)
+   - **Real Issue**: Used full range 0 to 2^31-1, caused overflow in generate_seeds()
 
-2. **Hex Conversion**
+2. **Hex Conversion** ⚠️ CRITICAL FIX
    - Python: `int(hash[:8], 16)` works
    - R: `strtoi(substr(hash, 1, 7), 16)` - use 7 not 8!
    - Reason: 8 hex chars = 32 bits can overflow signed int
+   - **Real Issue**: 8 chars caused NA values, set.seed() failed with "not a valid integer"
 
-3. **Default Ranges**
+3. **Default Ranges** ⚠️ CRITICAL FIX
    - Python: Can use any range
    - R: Use -1e9 to 1e9 (not 0 to 2^31-1)
    - Reason: Range SPAN must also fit in integer
+   - **Real Issue**: Default 0 to 2^31-1 worked for initialization but failed in generate_seeds()
 
-4. **Package Installation**
-   - Python: pip handles everything
-   - R: Use pak for GitHub, devtools has issues
+4. **Package Installation** ⚠️ IMPORTANT
+   - Python: pip handles everything reliably
+   - R: Use **pak** for GitHub (not devtools!)
    - CRAN: More rigorous than PyPI
+   - **Real Issue**: devtools::install_github() had SSL/PAT errors, pak solved it
 
-5. **Documentation**
+5. **Documentation** 
    - Python: Docstrings + Sphinx
    - R: roxygen2 comments + R CMD check
    - R requires more formal structure
+   - **Real Issue**: Duplicate @field tags caused warnings
 
 6. **Class Methods**
    - Python: `self.method()`
    - R: `self$method()` (dollar sign!)
    - R: Use `private = list(...)` for private methods
+   - R: `initialize` instead of `__init__`
 
 7. **Error Messages**
    - Python: Can be simple
    - R: Should use `sprintf()` for formatted messages
    - Both: Clear error messages prevent user confusion
+   - **Real Issue**: Silent NA conversion led to cryptic "not a valid integer" error
+
+8. **Repository Organization** ✨ NEW
+   - Separate Python/ and R/ directories
+   - Each with own README and examples
+   - Clear separation prevents confusion
+   - Makes dual-language projects maintainable
+
+9. **Range Validation** ⚠️ CRITICAL
+   - Must check BOTH individual values AND total span
+   - Example: -2e9 and 2e9 are both valid, but span is 4e9 (too large!)
+   - Always use `as.numeric()` for calculations, `as.integer()` for final
+   - **Real Issue**: Validated values but not range size, caused sample.int() errors
+
+10. **Build Artifacts** 
+    - Python: Keep in Python/dist/
+    - R: Keep seedhash_0.1.0.tar.gz in R/
+    - Don't clutter root directory
+    - **New**: Reorganized for clean structure
 
 ---
 
-## Conversion Checklist
+## Conversion Checklist (Updated)
 
 When adding new Python features to R:
 
+**Critical Validations:**
 - [ ] Check if feature uses large integers
-- [ ] Validate integer ranges BEFORE conversion
-- [ ] Use `as.numeric()` for calculations, `as.integer()` for final
+- [ ] Validate integer ranges BEFORE conversion (not after!)
+- [ ] Check BOTH individual values AND range span
+- [ ] Use `as.numeric()` for calculations, `as.integer()` only for final values
 - [ ] Test with edge cases: -2^31, 2^31-1, ranges > 2.1B
-- [ ] Use 7 hex characters for hash-to-int conversion
-- [ ] Add roxygen2 documentation (@description, @param, @return)
+
+**Code Implementation:**
+- [ ] Use 7 hex characters (not 8) for hash-to-int conversion
+- [ ] Set safe defaults: -1e9 to 1e9 (not 0 to 2^31-1)
+- [ ] Add range size validation before sample.int()
+- [ ] Provide clear error messages with sprintf()
+- [ ] Use R6 class structure properly (self$field, not self.field)
+
+**Documentation:**
+- [ ] Add roxygen2 documentation (@description, @param, @return, @field)
+- [ ] No duplicate @field tags
+- [ ] Document R-specific limitations clearly
+- [ ] Provide working examples with safe ranges
+
+**Testing:**
 - [ ] Write testthat tests with R-appropriate limits
+- [ ] Test edge cases: NA, overflow, range limits
+- [ ] Test both valid and invalid inputs
+- [ ] Verify error messages are helpful
+
+**Package Management:**
 - [ ] Update DESCRIPTION if new dependencies added
-- [ ] Run `devtools::check()` before committing
+- [ ] Run `devtools::check()` before committing (0 errors, 0 warnings)
+- [ ] Test installation with pak (not just devtools)
 - [ ] Update INSTALL.md if installation changes
-- [ ] Test with pak installation from GitHub
+- [ ] Verify README examples work
+
+**Repository Organization:**
+- [ ] Keep Python files in Python/
+- [ ] Keep R files in R/
+- [ ] Update relevant README files
+- [ ] Test installation from GitHub with new paths
+
+**Pre-Commit:**
+- [ ] All tests pass
+- [ ] No build warnings
+- [ ] Documentation builds correctly
+- [ ] Examples run without errors
+- [ ] Git status clean in correct directories
 
 ---
 
@@ -571,17 +670,162 @@ When adding new Python features to R:
 
 ---
 
-## Resources
+## Resources (Updated)
 
+### Official Documentation
 - **R6 Documentation**: https://r6.r-lib.org/
 - **roxygen2**: https://roxygen2.r-lib.org/
 - **testthat**: https://testthat.r-lib.org/
+- **pak Package Manager**: https://pak.r-lib.org/ ⭐ Recommended
+- **devtools**: https://devtools.r-lib.org/
 - **CRAN Policies**: https://cran.r-project.org/web/packages/policies.html
 - **Writing R Extensions**: https://cran.r-project.org/doc/manuals/r-release/R-exts.html
-- **pak Package Manager**: https://pak.r-lib.org/
+
+### Project-Specific Documentation
+- **Python Package**: [Python/README.md](Python/README.md)
+- **R Package**: [R/README.md](R/README.md) and [R/INSTALL.md](R/INSTALL.md)
+- **Installation Guide**: [GITHUB_INSTALL.md](GITHUB_INSTALL.md)
+- **Integer Issues**: [R/INTEGER_RANGE_SOLUTION.md](R/INTEGER_RANGE_SOLUTION.md)
+- **GitHub Troubleshooting**: [R/GITHUB_INSTALL_TROUBLESHOOTING.md](R/GITHUB_INSTALL_TROUBLESHOOTING.md)
+- **CRAN Submission**: [R/CRAN_SUBMISSION.md](R/CRAN_SUBMISSION.md)
+
+### Key Takeaways from This Project
+
+1. **Always use pak for GitHub R installations** - saves hours of debugging
+2. **7 hex characters, not 8** - prevents integer overflow in R
+3. **Default to -1e9 to 1e9** - safe range that works for most use cases
+4. **Validate before conversion** - catch errors before they become NAs
+5. **Test the range span** - not just individual min/max values
+6. **Separate Python/ and R/** - keeps dual-language projects organized
+7. **Clear error messages** - saves user frustration
+8. **Document limitations** - R users need to know about integer constraints
+
+### Common Pitfalls Encountered
+
+| Issue | Symptom | Solution |
+|-------|---------|----------|
+| 8 hex chars | "not a valid integer" | Use 7 chars: `substr(hash, 1, 7)` |
+| Large default range | "Range is too large" | Use -1e9 to 1e9, not 0 to 2^31-1 |
+| devtools SSL error | "cannot open URL" | Use pak instead of devtools |
+| Silent NA conversion | Cryptic errors later | Validate BEFORE as.integer() |
+| Range overflow | sample.int() fails | Check range SPAN, not just values |
+| Duplicate @field | roxygen2 warnings | Use @description for R6 fields |
+| Corrupted lazy-load | Package won't load | Remove pkg dir, clean install |
 
 ---
 
-**Last Updated**: October 31, 2025  
-**Version**: 1.0  
-**Status**: Production-ready conversion guide
+## Repository Structure (Updated)
+
+After reorganization, the repository now has a clean structure:
+
+```
+seedhash/
+├── Python/                      # Python implementation
+│   ├── seedhash/                # Package source
+│   ├── examples/                # Usage examples
+│   ├── setup.py                 # Package configuration
+│   └── README.md                # Python docs
+│
+├── R/                           # R implementation
+│   ├── R/                       # R source code
+│   │   └── seedhash.R           # Main R6 class
+│   ├── tests/                   # testthat tests
+│   ├── examples/                # R examples
+│   ├── DESCRIPTION              # Package metadata
+│   └── INSTALL.md               # Installation guide
+│
+├── PYTHON_TO_R_GUIDE.md         # This guide
+└── README.md                    # Main documentation
+```
+
+## Installation Paths (Updated)
+
+### Python Installation
+
+```bash
+# From GitHub (updated path)
+pip install git+https://github.com/melhzy/seedhash.git#subdirectory=Python
+
+# Local installation
+cd Python
+pip install .
+```
+
+### R Installation (Updated - pak is now recommended)
+
+```r
+# ✅ RECOMMENDED: Using pak
+install.packages("pak", repos = "https://r-lib.github.io/p/pak/stable/")
+pak::pkg_install("github::melhzy/seedhash/R")
+
+# Alternative: devtools (may have issues)
+devtools::install_github("melhzy/seedhash", subdir = "R")
+
+# Local installation
+devtools::install("path/to/seedhash/R")
+```
+
+**Why pak?** Better GitHub authentication, no SSL issues, faster and more reliable.
+
+---
+
+## Recent Fixes Applied (October 31, 2025)
+
+### Fix #1: Seed Generation Integer Overflow
+**Issue**: Using 8 hex characters caused integer overflow  
+**Solution**: Changed to 7 hex characters (28 bits vs 32 bits)
+
+```r
+# OLD (caused NA values):
+seed <- strtoi(substr(hash_value, 1, 8), base = 16)
+
+# NEW (safe):
+seed <- strtoi(substr(hash_value, 1, 7), base = 16)
+```
+
+### Fix #2: Default Range Too Large
+**Issue**: Default range 0 to 2^31-1 exceeded sample.int() capacity  
+**Solution**: Changed defaults to -1e9 to 1e9
+
+```r
+# OLD (caused range overflow):
+initialize = function(input_string, min_value = 0, max_value = 2^31 - 1)
+
+# NEW (safe default):
+initialize = function(input_string, min_value = -1e9, max_value = 1e9)
+```
+
+### Fix #3: Range Size Validation
+**Issue**: Large valid integers could create range > 2.1 billion  
+**Solution**: Added range size validation
+
+```r
+# Calculate range size safely
+range_size <- as.numeric(self$max_value) - as.numeric(self$min_value) + 1
+
+# Validate before use
+if (range_size > .Machine$integer.max) {
+  stop("Range is too large. Maximum range size is ", .Machine$integer.max)
+}
+```
+
+### Fix #4: Pre-Conversion Validation
+**Issue**: as.integer() silently converted out-of-range values to NA  
+**Solution**: Validate BEFORE conversion
+
+```r
+# Check BEFORE converting
+if (min_value < -2^31 || min_value > 2^31 - 1) {
+  stop(sprintf("min_value (%.0f) is outside R's integer range", min_value))
+}
+
+# Now safe to convert
+self$min_value <- as.integer(min_value)
+```
+
+---
+
+**Last Updated**: October 31, 2025 (Final)  
+**Version**: 2.0  
+**Status**: Production-ready with all fixes applied  
+**Repository**: https://github.com/melhzy/seedhash
