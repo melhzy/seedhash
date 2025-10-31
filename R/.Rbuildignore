@@ -1,0 +1,9 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^LICENSE\.md$
+^examples$
+^cran-comments\.md$
+^CRAN_SUBMISSION\.md$
+^INSTALL\.md$
+^PYTHON_VS_R\.md$
+^\.github$
