@@ -5,12 +5,33 @@
 Before installing the seedhash R package, ensure you have:
 
 1. **R** (version 3.5.0 or higher)
-2. **Required packages**: `R6`, `digest`
-3. **devtools** (for GitHub installation)
+2. **Required packages**: `R6`, `digest` (installed automatically)
 
-## Method 1: Install from GitHub (Recommended)
+## Method 1: Install from GitHub using pak ✅ RECOMMENDED
 
-This is the easiest method once the package is pushed to GitHub:
+**pak** is a modern package manager that reliably handles GitHub installations:
+
+```r
+# Install pak (one-time setup)
+install.packages("pak", repos = "https://r-lib.github.io/p/pak/stable/")
+
+# Install seedhash from GitHub
+pak::pkg_install("github::melhzy/seedhash/R")
+
+# Load the library
+library(seedhash)
+
+# Test it
+gen <- SeedHashGenerator$new("experiment_1")
+seeds <- gen$generate_seeds(5)
+print(seeds)
+```
+
+**Repository**: https://github.com/melhzy/seedhash/tree/main/R
+
+## Method 2: Install from GitHub using devtools (Alternative)
+
+If you prefer devtools (may have authentication issues on some systems):
 
 ```r
 # Install devtools if you haven't already
@@ -23,7 +44,22 @@ devtools::install_github("melhzy/seedhash", subdir = "R")
 library(seedhash)
 ```
 
-## Method 2: Install from Local Source
+## Method 2: Install from GitHub using devtools (Alternative)
+
+If you prefer devtools (may have authentication issues on some systems):
+
+```r
+# Install devtools if you haven't already
+install.packages("devtools")
+
+# Install seedhash from GitHub
+devtools::install_github("melhzy/seedhash", subdir = "R")
+
+# Load the library
+library(seedhash)
+```
+
+## Method 3: Install from Local Source
 
 If you have cloned the repository locally:
 
@@ -31,15 +67,23 @@ If you have cloned the repository locally:
 # Install devtools if needed
 install.packages("devtools")
 
-# Install from local directory
-# Replace with your actual path
+# Install from local directory (replace with your actual path)
 devtools::install("d:/Github/seedhash/R")
 
 # Load the library
 library(seedhash)
 ```
 
-## Method 3: Manual Installation (Development)
+## Method 4: Install from CRAN (After Publication)
+
+Once published to CRAN, you can install with:
+
+```r
+install.packages("seedhash")
+library(seedhash)
+```
+
+## Method 5: Manual Installation (Development)
 
 For development purposes, you can source the files directly without installation:
 
