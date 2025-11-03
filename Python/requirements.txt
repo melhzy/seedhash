@@ -1,10 +1,13 @@
 # Core dependencies (none - uses only Python standard library)
 
+# Optional dependencies for experiment management
+pandas>=1.3.0  # For DataFrame-based experiment tracking and result export
+
 # Optional dependencies for deep learning framework support
 # Install with: pip install seedhash[torch] or pip install seedhash[all]
 torch>=1.7.0  # Optional: For PyTorch seeding
 tensorflow>=2.0.0  # Optional: For TensorFlow seeding
-numpy>=1.19.0  # Optional: For NumPy seeding
+numpy>=1.19.0  # Optional: For NumPy seeding and ML metrics
 
 # Development dependencies (optional)
 setuptools>=45

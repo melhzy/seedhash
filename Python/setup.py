@@ -39,10 +39,13 @@ setup(
         "torch": ["torch>=1.7.0"],
         "tensorflow": ["tensorflow>=2.0.0"],
         "numpy": ["numpy>=1.19.0"],
+        "pandas": ["pandas>=1.3.0"],
+        "experiment": ["pandas>=1.3.0", "numpy>=1.19.0"],  # For experiment management
         "all": [
             "torch>=1.7.0",
             "tensorflow>=2.0.0",
             "numpy>=1.19.0",
+            "pandas>=1.3.0",
         ],
         "dev": [
             "pytest>=6.0",
