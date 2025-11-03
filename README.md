@@ -33,6 +33,8 @@ seedhash/
 - 📦 **Lightweight**: Minimal dependencies (Python: none, R: R6 + digest)
 - 🚀 **Easy to Use**: Simple, intuitive API
 - 🔄 **Cross-Language**: Available in both Python and R
+- 🎲 **4 Sampling Methods**: Simple, Stratified, Cluster, and Systematic random sampling
+- 🧪 **ML Integration**: Experiment tracking with hierarchical seed management
 
 ## Installation
 
@@ -266,6 +268,75 @@ gen = SeedHashGenerator(dataset_version)
 sample_seed = gen.generate_seeds(1)[0]
 
 random.seed(sample_seed)
+```
+
+## Advanced Features
+
+### 🎲 4 Random Sampling Techniques
+
+SeedHash includes 4 scientifically-backed sampling methods for systematic seed generation:
+
+```python
+from seedhash import SeedSampler
+
+sampler = SeedSampler(master_seed=42)
+
+# 1. Simple Random Sampling - Pure randomness
+simple = sampler.simple_random_sampling(n_samples=10, seed_range=(0, 1000))
+
+# 2. Stratified Random Sampling - Balanced coverage
+stratified = sampler.stratified_random_sampling(
+    n_samples=25, seed_range=(0, 1000), n_strata=5
+)
+
+# 3. Cluster Random Sampling - Grouped seeds
+cluster = sampler.cluster_random_sampling(
+    n_samples=20, seed_range=(0, 1000), n_clusters=4
+)
+
+# 4. Systematic Random Sampling - Even intervals
+systematic = sampler.systematic_random_sampling(n_samples=15, seed_range=(0, 1000))
+```
+
+📖 **[Full Sampling Methods Documentation →](SAMPLING_METHODS.md)**
+
+### 🧪 Hierarchical Seed Management & Experiment Tracking
+
+```python
+from seedhash import SeedExperimentManager
+import numpy as np
+
+# Create experiment manager
+manager = SeedExperimentManager("my_ml_project")
+
+# Generate hierarchical seeds: master → seeds → sub-seeds
+hierarchy = manager.generate_seed_hierarchy(
+    n_seeds=10,
+    n_sub_seeds=5,
+    max_depth=2,
+    sampling_method="stratified"  # Use any of the 4 methods
+)
+
+# Track experiments
+for seed in hierarchy[1]:
+    # Run your experiment
+    np.random.seed(seed)
+    accuracy = 0.8 + np.random.rand() * 0.15
+    
+    # Record results
+    manager.add_experiment_result(
+        seed=seed,
+        ml_task="classification",
+        metrics={"accuracy": accuracy, "f1_score": 0.85},
+        sampling_method="stratified"
+    )
+
+# Export to DataFrame
+df = manager.get_results_dataframe()
+df.to_csv('experiment_results.csv')
+```
+
+📖 **[Full Documentation](Python/README.md)** | 📓 **[Jupyter Tutorials](jupyter/README.md)**
 # Use random module for sampling with reproducibility
 ```
 
