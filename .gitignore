@@ -74,6 +74,8 @@ target/
 
 # Jupyter Notebook
 .ipynb_checkpoints
+.jupyter/
+.virtual_documents/
 
 # IPython
 profile_default/
@@ -132,3 +134,15 @@ dmypy.json
 # OS
 .DS_Store
 Thumbs.db
+
+# Generated output files
+*_results.csv
+*_results.json
+experiment_*.csv
+experiment_*.json
+
+# Temporary scripts
+cleanup_*.py
+fix_*.py
+check_*.py
+
