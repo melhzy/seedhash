@@ -453,6 +453,227 @@ When `deterministic=True` (default), seedhash configures frameworks for maximum 
 
 **Note:** Deterministic mode may reduce performance but ensures reproducibility.
 
+## Advanced ML Paradigms 🆕
+
+seedhash now supports advanced machine learning paradigms with specialized metrics:
+
+### Supported Paradigms
+
+#### 1. **Semi-Supervised Learning**
+Track experiments with labeled and unlabeled data:
+
+```python
+from seedhash import MLMetrics
+
+metrics = MLMetrics.semi_supervised_metrics(
+    y_labeled_true=[0, 1, 1, 0, 1],           # True labels for labeled data
+    y_labeled_pred=[0, 1, 0, 0, 1],           # Predictions for labeled data
+    y_unlabeled_pseudo=[1, 0, 1, 0, ...],     # Pseudo-labels for unlabeled data
+    pseudo_confidence=[0.95, 0.87, ...],      # Confidence scores (optional)
+    consistency_scores=[0.92, 0.89, ...]      # Consistency across augmentations (optional)
+)
+
+# Returns: labeled_accuracy, label_ratio, pseudo_label_diversity,
+#          avg_pseudo_confidence, avg_consistency, etc.
+```
+
+**Metrics Included:**
+- `labeled_accuracy`: Accuracy on labeled data
+- `label_ratio`: Ratio of labeled to total data
+- `pseudo_label_diversity`: Variety in pseudo-labels
+- `avg_pseudo_confidence`: Average confidence in pseudo-labels
+- `high_confidence_ratio`: Proportion of high-confidence predictions
+- `avg_consistency`: Consistency score across augmentations
+
+#### 2. **Reinforcement Learning**
+Track RL training progress across episodes:
+
+```python
+from seedhash import MLMetrics
+
+metrics = MLMetrics.reinforcement_learning_metrics(
+    episode_rewards=[150.5, 180.2, 195.7, ...],  # Cumulative rewards per episode
+    episode_lengths=[100, 95, 105, ...],          # Steps per episode
+    success_flags=[False, True, True, ...],       # Success indicators (optional)
+    q_values=[50.2, 75.8, 90.1, ...]             # Q-values (optional)
+)
+
+# Returns: mean_reward, success_rate, mean_episode_length,
+#          improvement_rate, convergence indicators, etc.
+```
+
+**Metrics Included:**
+- `mean_reward`, `std_reward`: Reward statistics
+- `max_reward`, `min_reward`: Best/worst episodes
+- `mean_episode_length`: Average episode duration
+- `success_rate`: Proportion of successful episodes
+- `mean_q_value`: Average Q-value estimates
+- `recent_mean_reward`: Recent performance window
+- `improvement_rate`: Learning progress indicator
+
+#### 3. **Federated Learning**
+Monitor federated training across clients:
+
+```python
+from seedhash import MLMetrics
+
+metrics = MLMetrics.federated_learning_metrics(
+    client_accuracies=[0.85, 0.87, 0.83, ...],    # Accuracy per client
+    communication_rounds=50,                       # Number of rounds completed
+    client_losses=[0.15, 0.13, 0.17, ...],        # Loss per client (optional)
+    model_divergences=[0.05, 0.03, ...],          # Model drift (optional)
+    participation_rates=[0.9, 0.95, ...]          # Client participation (optional)
+)
+
+# Returns: global_accuracy, fairness_cv, convergence_indicator,
+#          model_divergence, participation metrics, etc.
+```
+
+**Metrics Included:**
+- `global_accuracy`: Average accuracy across clients
+- `accuracy_std`, `accuracy_variance`: Client heterogeneity
+- `min/max_client_accuracy`: Performance range
+- `fairness_cv`: Coefficient of variation (fairness indicator)
+- `global_loss`: Average loss across clients
+- `avg_model_divergence`: Model drift from global
+- `convergence_indicator`: Convergence quality metric
+- `avg_participation_rate`: Client engagement
+
+### Complete Example: Semi-Supervised Learning
+
+```python
+from seedhash import SeedExperimentManager, MLMetrics
+import random
+
+# Initialize experiment manager
+manager = SeedExperimentManager("semi_supervised_study")
+
+# Generate hierarchical seeds
+hierarchy = manager.generate_seed_hierarchy(
+    n_seeds=5,
+    n_sub_seeds=4,
+    sampling_method="stratified"
+)
+
+# Run experiments with different seeds
+for seed in hierarchy[2]:
+    random.seed(seed)
+    
+    # Simulate semi-supervised setup (10% labeled)
+    n_labeled, n_unlabeled = 100, 900
+    
+    y_labeled_true = [random.randint(0, 2) for _ in range(n_labeled)]
+    y_labeled_pred = [val if random.random() > 0.15 else random.randint(0, 2) 
+                      for val in y_labeled_true]
+    y_unlabeled_pseudo = [random.randint(0, 2) for _ in range(n_unlabeled)]
+    pseudo_confidence = [random.uniform(0.6, 0.99) for _ in range(n_unlabeled)]
+    
+    # Calculate metrics
+    metrics = MLMetrics.semi_supervised_metrics(
+        y_labeled_true, y_labeled_pred, y_unlabeled_pseudo, pseudo_confidence
+    )
+    
+    # Track experiment
+    manager.add_experiment_result(
+        seed=seed,
+        ml_task="semi_supervised",
+        metrics=metrics,
+        sampling_method="stratified",
+        metadata={"algorithm": "pseudo_labeling", "label_ratio": 0.1}
+    )
+
+# Analyze results
+df = manager.get_results_dataframe()
+print(f"Average labeled accuracy: {df['metric_labeled_accuracy'].mean():.3f}")
+print(f"Average pseudo confidence: {df['metric_avg_pseudo_confidence'].mean():.3f}")
+```
+
+### Complete Example: Reinforcement Learning
+
+```python
+from seedhash import SeedExperimentManager, MLMetrics
+
+manager = SeedExperimentManager("rl_cartpole")
+
+hierarchy = manager.generate_seed_hierarchy(
+    n_seeds=5,
+    n_sub_seeds=3,
+    sampling_method="systematic"
+)
+
+for seed in hierarchy[2]:
+    # Simulate RL training
+    episode_rewards = [...]  # Training rewards
+    episode_lengths = [...]  # Episode durations
+    success_flags = [reward > 195 for reward in episode_rewards]
+    
+    metrics = MLMetrics.reinforcement_learning_metrics(
+        episode_rewards, episode_lengths, success_flags
+    )
+    
+    manager.add_experiment_result(
+        seed=seed,
+        ml_task="reinforcement",
+        metrics=metrics,
+        sampling_method="systematic",
+        metadata={"environment": "CartPole-v1", "algorithm": "DQN"}
+    )
+
+df = manager.get_results_dataframe()
+print(f"Average success rate: {df['metric_success_rate'].mean():.1%}")
+```
+
+### Complete Example: Federated Learning
+
+```python
+from seedhash import SeedExperimentManager, MLMetrics
+
+manager = SeedExperimentManager("federated_mnist")
+
+hierarchy = manager.generate_seed_hierarchy(
+    n_seeds=5,
+    n_sub_seeds=4,
+    sampling_method="cluster"
+)
+
+for seed in hierarchy[2]:
+    # Simulate federated training
+    client_accuracies = [...]  # 10 clients
+    communication_rounds = 50
+    
+    metrics = MLMetrics.federated_learning_metrics(
+        client_accuracies,
+        communication_rounds
+    )
+    
+    manager.add_experiment_result(
+        seed=seed,
+        ml_task="federated",
+        metrics=metrics,
+        sampling_method="cluster",
+        metadata={"aggregation": "FedAvg", "n_clients": 10}
+    )
+
+df = manager.get_results_dataframe()
+print(f"Average global accuracy: {df['metric_global_accuracy'].mean():.3f}")
+print(f"Average fairness CV: {df['metric_fairness_cv'].mean():.3f}")
+```
+
+### All Supported ML Tasks
+
+1. **regression**: RMSE, MAE, R², MAPE
+2. **classification**: Accuracy, Precision, Recall, F1
+3. **unsupervised**: Silhouette score, cluster metrics
+4. **supervised**: Generic supervised learning
+5. **semi_supervised**: Label propagation, pseudo-label quality
+6. **reinforcement**: Episode rewards, success rates, Q-values
+7. **federated**: Client accuracy, fairness, convergence
+
+Run advanced examples:
+```bash
+python examples/advanced_ml_paradigms.py
+```
+
 ## Testing
 
 ```bash
@@ -475,6 +696,6 @@ For converting Python features to R, see [PYTHON_TO_R_GUIDE.md](../PYTHON_TO_R_G
 
 ---
 
-**Version**: 0.2.0  
+**Version**: 0.3.0  
 **License**: MIT  
 **Python**: >=3.7

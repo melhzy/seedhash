@@ -26,7 +26,8 @@ from .core import SeedHashGenerator
 
 
 SamplingMethod = Literal["simple", "stratified", "cluster", "systematic"]
-MLTask = Literal["regression", "classification", "unsupervised", "supervised"]
+MLTask = Literal["regression", "classification", "unsupervised", "supervised", 
+                 "semi_supervised", "reinforcement", "federated"]
 
 
 @dataclass
@@ -598,3 +599,186 @@ class MLMetrics:
             'n_clusters': int(n_clusters),
             'n_samples': int(len(X))
         }
+    
+    @staticmethod
+    def semi_supervised_metrics(
+        y_labeled_true,
+        y_labeled_pred,
+        y_unlabeled_pseudo,
+        pseudo_confidence=None,
+        consistency_scores=None
+    ) -> Dict[str, float]:
+        """Calculate semi-supervised learning metrics.
+        
+        Args:
+            y_labeled_true: True labels for labeled data.
+            y_labeled_pred: Predictions for labeled data.
+            y_unlabeled_pseudo: Pseudo-labels for unlabeled data.
+            pseudo_confidence: Confidence scores for pseudo-labels (optional).
+            consistency_scores: Consistency scores across augmentations (optional).
+        
+        Returns:
+            Dictionary with labeled accuracy, pseudo-label quality, consistency, etc.
+        """
+        if not NUMPY_AVAILABLE:
+            raise ImportError("numpy is required for metric calculation")
+        
+        y_labeled_true = np.array(y_labeled_true)
+        y_labeled_pred = np.array(y_labeled_pred)
+        y_unlabeled_pseudo = np.array(y_unlabeled_pseudo)
+        
+        # Labeled data accuracy
+        labeled_accuracy = np.mean(y_labeled_true == y_labeled_pred)
+        
+        # Pseudo-label statistics
+        n_labeled = len(y_labeled_true)
+        n_unlabeled = len(y_unlabeled_pseudo)
+        label_ratio = n_labeled / (n_labeled + n_unlabeled) if (n_labeled + n_unlabeled) > 0 else 0
+        
+        metrics = {
+            'labeled_accuracy': float(labeled_accuracy),
+            'n_labeled': int(n_labeled),
+            'n_unlabeled': int(n_unlabeled),
+            'label_ratio': float(label_ratio),
+            'pseudo_label_diversity': float(len(np.unique(y_unlabeled_pseudo)) / max(1, len(np.unique(y_labeled_true))))
+        }
+        
+        # Pseudo-label confidence (if provided)
+        if pseudo_confidence is not None:
+            pseudo_confidence = np.array(pseudo_confidence)
+            metrics['avg_pseudo_confidence'] = float(np.mean(pseudo_confidence))
+            metrics['high_confidence_ratio'] = float(np.mean(pseudo_confidence > 0.9))
+        
+        # Consistency score (if provided)
+        if consistency_scores is not None:
+            consistency_scores = np.array(consistency_scores)
+            metrics['avg_consistency'] = float(np.mean(consistency_scores))
+            metrics['consistency_std'] = float(np.std(consistency_scores))
+        
+        return metrics
+    
+    @staticmethod
+    def reinforcement_learning_metrics(
+        episode_rewards: List[float],
+        episode_lengths: List[int],
+        success_flags: Optional[List[bool]] = None,
+        q_values: Optional[List[float]] = None
+    ) -> Dict[str, float]:
+        """Calculate reinforcement learning metrics.
+        
+        Args:
+            episode_rewards: List of cumulative rewards per episode.
+            episode_lengths: List of episode lengths (steps).
+            success_flags: Binary success indicators per episode (optional).
+            q_values: Q-values or value estimates (optional).
+        
+        Returns:
+            Dictionary with episode metrics, success rate, convergence indicators.
+        """
+        if not NUMPY_AVAILABLE:
+            raise ImportError("numpy is required for metric calculation")
+        
+        episode_rewards = np.array(episode_rewards)
+        episode_lengths = np.array(episode_lengths)
+        
+        metrics = {
+            'mean_reward': float(np.mean(episode_rewards)),
+            'std_reward': float(np.std(episode_rewards)),
+            'max_reward': float(np.max(episode_rewards)),
+            'min_reward': float(np.min(episode_rewards)),
+            'mean_episode_length': float(np.mean(episode_lengths)),
+            'std_episode_length': float(np.std(episode_lengths)),
+            'n_episodes': int(len(episode_rewards))
+        }
+        
+        # Success rate (if provided)
+        if success_flags is not None:
+            success_flags = np.array(success_flags)
+            metrics['success_rate'] = float(np.mean(success_flags))
+            metrics['n_successes'] = int(np.sum(success_flags))
+        
+        # Q-value statistics (if provided)
+        if q_values is not None:
+            q_values = np.array(q_values)
+            metrics['mean_q_value'] = float(np.mean(q_values))
+            metrics['std_q_value'] = float(np.std(q_values))
+            metrics['max_q_value'] = float(np.max(q_values))
+        
+        # Convergence indicators
+        if len(episode_rewards) >= 10:
+            # Recent performance (last 20%)
+            recent_window = max(10, len(episode_rewards) // 5)
+            recent_rewards = episode_rewards[-recent_window:]
+            metrics['recent_mean_reward'] = float(np.mean(recent_rewards))
+            metrics['improvement_rate'] = float(
+                (np.mean(recent_rewards) - np.mean(episode_rewards[:recent_window])) / 
+                (np.mean(episode_rewards[:recent_window]) + 1e-8)
+            )
+        
+        return metrics
+    
+    @staticmethod
+    def federated_learning_metrics(
+        client_accuracies: List[float],
+        communication_rounds: int,
+        client_losses: Optional[List[float]] = None,
+        model_divergences: Optional[List[float]] = None,
+        participation_rates: Optional[List[float]] = None
+    ) -> Dict[str, float]:
+        """Calculate federated learning metrics.
+        
+        Args:
+            client_accuracies: List of accuracy values per client.
+            communication_rounds: Number of communication rounds completed.
+            client_losses: Loss values per client (optional).
+            model_divergences: Model divergence from global model per client (optional).
+            participation_rates: Client participation rates (optional).
+        
+        Returns:
+            Dictionary with federation metrics, fairness, convergence indicators.
+        """
+        if not NUMPY_AVAILABLE:
+            raise ImportError("numpy is required for metric calculation")
+        
+        client_accuracies = np.array(client_accuracies)
+        
+        metrics = {
+            'global_accuracy': float(np.mean(client_accuracies)),
+            'accuracy_std': float(np.std(client_accuracies)),
+            'min_client_accuracy': float(np.min(client_accuracies)),
+            'max_client_accuracy': float(np.max(client_accuracies)),
+            'accuracy_variance': float(np.var(client_accuracies)),
+            'n_clients': int(len(client_accuracies)),
+            'communication_rounds': int(communication_rounds)
+        }
+        
+        # Fairness metrics (coefficient of variation)
+        if np.mean(client_accuracies) > 0:
+            metrics['fairness_cv'] = float(np.std(client_accuracies) / np.mean(client_accuracies))
+        else:
+            metrics['fairness_cv'] = float('inf')
+        
+        # Client losses (if provided)
+        if client_losses is not None:
+            client_losses = np.array(client_losses)
+            metrics['global_loss'] = float(np.mean(client_losses))
+            metrics['loss_std'] = float(np.std(client_losses))
+        
+        # Model divergence (if provided)
+        if model_divergences is not None:
+            model_divergences = np.array(model_divergences)
+            metrics['avg_model_divergence'] = float(np.mean(model_divergences))
+            metrics['max_model_divergence'] = float(np.max(model_divergences))
+        
+        # Participation metrics (if provided)
+        if participation_rates is not None:
+            participation_rates = np.array(participation_rates)
+            metrics['avg_participation_rate'] = float(np.mean(participation_rates))
+            metrics['min_participation_rate'] = float(np.min(participation_rates))
+        
+        # Convergence indicator (accuracy range)
+        metrics['convergence_indicator'] = float(
+            1.0 - (np.max(client_accuracies) - np.min(client_accuracies))
+        )
+        
+        return metrics
