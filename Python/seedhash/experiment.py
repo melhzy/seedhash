@@ -169,20 +169,30 @@ class SeedSampler:
         cluster_radius = (max_seed - min_seed) // (n_clusters * 10)
         
         seeds = []
-        for _ in range(n_clusters):
+        samples_remaining = n_samples
+        
+        for cluster_idx in range(n_clusters):
             # Generate cluster center
             center = self.rng.randint(min_seed + cluster_radius, max_seed - cluster_radius)
             
+            # Calculate samples for this cluster (ensure we reach exactly n_samples)
+            if cluster_idx == n_clusters - 1:
+                # Last cluster gets all remaining samples
+                samples_this_cluster = samples_remaining
+            else:
+                samples_this_cluster = min(samples_per_cluster, samples_remaining)
+            
             # Generate seeds around the center
-            for _ in range(samples_per_cluster):
+            for _ in range(samples_this_cluster):
                 offset = self.rng.randint(-cluster_radius, cluster_radius)
                 seed = max(min_seed, min(max_seed, center + offset))
                 seeds.append(seed)
+                samples_remaining -= 1
                 
-                if len(seeds) >= n_samples:
-                    return seeds[:n_samples]
+                if samples_remaining == 0:
+                    return seeds
         
-        return seeds[:n_samples]
+        return seeds
     
     def systematic_random_sampling(
         self,
