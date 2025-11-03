@@ -32,7 +32,26 @@ setup(
         "Topic :: Scientific/Engineering",
     ],
     python_requires=">=3.7",
-    keywords="seed random hash reproducible deterministic",
+    install_requires=[
+        # No required dependencies - uses only Python standard library
+    ],
+    extras_require={
+        "torch": ["torch>=1.7.0"],
+        "tensorflow": ["tensorflow>=2.0.0"],
+        "numpy": ["numpy>=1.19.0"],
+        "all": [
+            "torch>=1.7.0",
+            "tensorflow>=2.0.0",
+            "numpy>=1.19.0",
+        ],
+        "dev": [
+            "pytest>=6.0",
+            "pytest-cov>=2.12",
+            "black>=21.0",
+            "flake8>=3.9",
+        ],
+    },
+    keywords="seed random hash reproducible deterministic pytorch tensorflow numpy deep-learning",
     project_urls={
         "Bug Reports": "https://github.com/melhzy/seedhash/issues",
         "Source": "https://github.com/melhzy/seedhash",

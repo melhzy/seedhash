@@ -1,5 +1,11 @@
 # Core dependencies (none - uses only Python standard library)
 
+# Optional dependencies for deep learning framework support
+# Install with: pip install seedhash[torch] or pip install seedhash[all]
+torch>=1.7.0  # Optional: For PyTorch seeding
+tensorflow>=2.0.0  # Optional: For TensorFlow seeding
+numpy>=1.19.0  # Optional: For NumPy seeding
+
 # Development dependencies (optional)
 setuptools>=45
 wheel
