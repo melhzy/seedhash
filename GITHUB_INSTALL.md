@@ -15,8 +15,15 @@ GitHub Repository: **https://github.com/melhzy/seedhash**
 ### Quick Install
 
 ```bash
-# Install from GitHub
+# Basic installation
 pip install git+https://github.com/melhzy/seedhash.git#subdirectory=Python
+
+# With all extras (deep learning frameworks)
+pip install "git+https://github.com/melhzy/seedhash.git#egg=seedhash[all]&subdirectory=Python"
+
+# Or install extras separately
+pip install git+https://github.com/melhzy/seedhash.git#subdirectory=Python
+pip install tensorflow torch gymnasium scikit-learn
 ```
 
 ### Verify Installation
