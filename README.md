@@ -344,18 +344,39 @@ df.to_csv('experiment_results.csv')
 ## Project Structure
 
 ```
-seedhash/
+Python/
 ├── seedhash/
-│   ├── __init__.py       # Package initialization
-│   └── core.py           # Core SeedHashGenerator class
+│   ├── __init__.py          # Package initialization
+│   ├── core.py              # Core SeedHashGenerator class
+│   └── experiment.py        # Experiment tracking
 ├── examples/
-│   └── demo.py           # Usage examples
-├── base.py               # Original implementation
-├── setup.py              # Setup configuration
-├── pyproject.toml        # Modern Python packaging
-├── requirements.txt      # Dependencies
-├── README.md             # This file
-└── LICENSE               # MIT License
+│   ├── demo.py              # Usage examples
+│   ├── hierarchical_sampling.py
+│   ├── deep_learning_seeding.py
+│   └── advanced_ml_paradigms.py
+├── setup.py                 # Setup configuration
+├── pyproject.toml           # Modern Python packaging
+├── requirements.txt         # Dependencies
+└── README.md                # Python documentation
+
+R/
+├── R/
+│   └── seedhash.R           # R package implementation
+├── man/                     # R documentation
+├── tests/
+│   └── test_seedhash.R      # R tests
+├── examples/
+│   └── example_usage.R
+├── DESCRIPTION              # R package metadata
+└── README.md                # R documentation
+
+Root files:
+├── paper.md                 # JOSS paper
+├── paper.bib                # References
+├── CONTRIBUTING.md          # Contribution guidelines
+├── CODE_OF_CONDUCT.md       # Code of conduct
+├── LICENSE                  # MIT License
+└── README.md                # This file
 ```
 
 ## Development
