@@ -1,4 +1,4 @@
-# SeedHash
+# SeedHash: Deterministic Random Seed Generation from String Inputs
 
 [![Python Version](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/)
 [![R Version](https://img.shields.io/badge/R-3.5+-blue.svg)](https://www.r-project.org/)
@@ -409,6 +409,36 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **melhzy**
 - GitHub: [@melhzy](https://github.com/melhzy)
+
+## Citation
+
+If you use SeedHash in your research or project, please consider citing it:
+
+### BibTeX
+
+```bibtex
+@software{seedhash2025,
+  author = {Ziyuan Huang},
+  title = {SeedHash: Deterministic Random Seed Generation from String Inputs},
+  year = {2025},
+  url = {https://github.com/melhzy/seedhash},
+  note = {Python and R implementation}
+}
+```
+
+### APA Style
+
+```
+melhzy. (2025). SeedHash: Deterministic Random Seed Generation from String Inputs 
+(Version 0.1.0) [Computer software]. https://github.com/melhzy/seedhash
+```
+
+### Chicago Style
+
+```
+melhzy. 2025. "SeedHash: Deterministic Random Seed Generation from String Inputs." 
+Computer software. Version 0.1.0. https://github.com/melhzy/seedhash.
+```
 
 ## Changelog
 
