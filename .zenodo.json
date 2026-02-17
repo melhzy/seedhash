@@ -1,0 +1,35 @@
+{
+  "title": "SeedHash: Deterministic Random Seed Generation for Reproducible Research",
+  "description": "A cross-language library (Python and R) that generates deterministic random seeds from human-readable string identifiers using MD5 hashing. Supports hierarchical seed management and four sampling methods for reproducible computational research.",
+  "license": "MIT",
+  "upload_type": "software",
+  "creators": [
+    {
+      "name": "Huang, Ziyuan",
+      "affiliation": "University of Massachusetts Chan Medical School",
+      "orcid": "0000-0002-2215-2473"
+    }
+  ],
+  "keywords": [
+    "reproducibility",
+    "random-seeds",
+    "machine-learning",
+    "python",
+    "r",
+    "monte-carlo",
+    "simulation",
+    "computational-research",
+    "seed-generation",
+    "cross-validation"
+  ],
+  "related_identifiers": [
+    {
+      "scheme": "url",
+      "identifier": "https://github.com/melhzy/seedhash",
+      "relation": "isSupplementTo"
+    }
+  ],
+  "contributors": [],
+  "version": "0.1.0",
+  "language": "eng"
+}

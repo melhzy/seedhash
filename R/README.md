@@ -199,7 +199,10 @@ MIT License - see LICENSE file for details.
 
 ## Author
 
-melhzy
+**Ziyuan Huang**
+- ORCID: [0000-0002-2215-2473](https://orcid.org/0000-0002-2215-2473)
+- Affiliation: University of Massachusetts Chan Medical School
+- GitHub: [@melhzy](https://github.com/melhzy)
 
 ## Contributing
 

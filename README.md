@@ -3,6 +3,7 @@
 [![Python Version](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/)
 [![R Version](https://img.shields.io/badge/R-3.5+-blue.svg)](https://www.r-project.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Tests](https://github.com/melhzy/seedhash/workflows/Tests/badge.svg)](https://github.com/melhzy/seedhash/actions)
 
 **SeedHash** is a library for generating deterministic random seeds from string inputs using MD5 hashing. Available in both **Python** and **R**, it's perfect for creating reproducible experiments, simulations, and any scenario where you need consistent random number generation across different runs.
 
@@ -393,13 +394,27 @@ twine upload dist/*
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+We welcome contributions from the community! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details on:
+
+- Reporting bugs and suggesting enhancements
+- Development setup for Python and R
+- Coding standards and testing requirements
+- Pull request process
+
+Please also read our [Code of Conduct](CODE_OF_CONDUCT.md) before contributing.
+
+### Quick Start for Contributors
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+3. Make your changes following our coding standards
+4. Add tests for new functionality
+5. Ensure all tests pass
+6. Commit your changes (`git commit -m 'Add some amazing feature'`)
+7. Push to the branch (`git push origin feature/amazing-feature`)
+8. Open a Pull Request
+
+For questions, please open an issue on GitHub.
 
 ## License
 
@@ -407,7 +422,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Author
 
-**melhzy**
+**Ziyuan Huang**
+- ORCID: [0000-0002-2215-2473](https://orcid.org/0000-0002-2215-2473)
+- Affiliation: University of Massachusetts Chan Medical School
 - GitHub: [@melhzy](https://github.com/melhzy)
 
 ## Citation
@@ -429,14 +446,14 @@ If you use SeedHash in your research or project, please consider citing it:
 ### APA Style
 
 ```
-melhzy. (2025). SeedHash: Deterministic Random Seed Generation from String Inputs 
+Huang, Z. (2025). SeedHash: Deterministic Random Seed Generation from String Inputs 
 (Version 0.1.0) [Computer software]. https://github.com/melhzy/seedhash
 ```
 
 ### Chicago Style
 
 ```
-melhzy. 2025. "SeedHash: Deterministic Random Seed Generation from String Inputs." 
+Huang, Ziyuan. 2025. "SeedHash: Deterministic Random Seed Generation from String Inputs." 
 Computer software. Version 0.1.0. https://github.com/melhzy/seedhash.
 ```
 

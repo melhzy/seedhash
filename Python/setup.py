@@ -10,8 +10,8 @@ long_description = (this_directory / "README.md").read_text(encoding='utf-8')
 setup(
     name="seedhash",
     version="0.1.0",
-    author="melhzy",
-    author_email="your.email@example.com",
+    author="Ziyuan Huang",
+    author_email="ziyuan.huang@umassmed.edu",
     description="Deterministic seed generation from string inputs using MD5 hashing",
     long_description=long_description,
     long_description_content_type="text/markdown",

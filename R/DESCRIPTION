@@ -2,8 +2,9 @@ Package: seedhash
 Type: Package
 Title: Deterministic Seed Generation from String Inputs Using MD5 Hashing
 Version: 0.1.0
-Authors@R: person("melhzy", email = "melhzy@gmail.com", 
-                  role = c("aut", "cre"))
+Authors@R: person("Ziyuan", "Huang", email = "ziyuan.huang@umassmed.edu", 
+                  role = c("aut", "cre"),
+                  comment = c(ORCID = "0000-0002-2215-2473"))
 Description: Provides a simple way to generate reproducible random seeds from 
     string inputs using MD5 hashing. Useful for reproducible experiments and 
     simulations where deterministic random number generation based on a string 
