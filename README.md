@@ -338,8 +338,6 @@ df.to_csv('experiment_results.csv')
 ```
 
 📖 **[Full Documentation](Python/README.md)** | 📓 **[Jupyter Tutorials](jupyter/README.md)**
-# Use random module for sampling with reproducibility
-```
 
 ## Project Structure
 
