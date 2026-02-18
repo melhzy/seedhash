@@ -453,27 +453,30 @@ If you use SeedHash in your research or project, please consider citing it:
 ### BibTeX
 
 ```bibtex
-@software{seedhash2025,
-  author = {Ziyuan Huang},
-  title = {SeedHash: Deterministic Random Seed Generation from String Inputs},
-  year = {2025},
-  url = {https://github.com/melhzy/seedhash},
-  note = {Python and R implementation}
+@software{huang2025seedhash,
+  author    = {Ziyuan Huang},
+  title     = {{SeedHash}: {MD5}-Based Deterministic Random Seed Generator},
+  year      = {2025},
+  month     = oct,
+  publisher = {Zenodo},
+  version   = {0.1.0},
+  doi       = {10.5281/zenodo.17495331},
+  url       = {https://github.com/melhzy/seedhash}
 }
 ```
 
 ### APA Style
 
 ```
-Huang, Z. (2025). SeedHash: Deterministic Random Seed Generation from String Inputs 
-(Version 0.1.0) [Computer software]. https://github.com/melhzy/seedhash
+Huang, Z. (2025). SeedHash: MD5-based deterministic random seed generator 
+(Version 0.1.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.17495331
 ```
 
 ### Chicago Style
 
 ```
-Huang, Ziyuan. 2025. "SeedHash: Deterministic Random Seed Generation from String Inputs." 
-Computer software. Version 0.1.0. https://github.com/melhzy/seedhash.
+Huang, Ziyuan. 2025. "SeedHash: MD5-Based Deterministic Random Seed Generator." 
+Version 0.1.0. Zenodo. https://doi.org/10.5281/zenodo.17495331.
 ```
 
 ## Changelog
