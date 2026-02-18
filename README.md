@@ -1,4 +1,4 @@
-# SeedHash: Deterministic Random Seed Generation from String Inputs
+# SeedHash: MD5-Based Deterministic Random Seed Generator
 
 [![Python Version](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/)
 [![R Version](https://img.shields.io/badge/R-3.5+-blue.svg)](https://www.r-project.org/)
