@@ -5,7 +5,7 @@ library(R6)
 library(digest)
 
 # Source the main file
-source("R/seedhash.R")
+source("R/R/seedhash.R")
 
 cat("=== Running Tests for seedhash R Package ===\n\n")
 

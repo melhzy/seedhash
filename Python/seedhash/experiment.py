@@ -1,5 +1,7 @@
 """Experimental seed management with hierarchical sampling and ML evaluation tracking."""
 
+from __future__ import annotations
+
 import random
 from typing import List, Dict, Optional, Literal, Union, Any
 from dataclasses import dataclass, field

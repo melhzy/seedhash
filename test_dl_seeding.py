@@ -89,11 +89,11 @@ def test_deterministic_mode():
     print("=" * 60)
     
     gen = SeedHashGenerator("deterministic_test")
-    status = gen.set_seed("torch", deterministic=True)
-    
-    print(f"Status: {status}")
     
     try:
+        status = gen.set_seed("torch", deterministic=True)
+        print(f"Status: {status}")
+        
         import torch
         print("\nDeterministic settings:")
         print(f"  Deterministic algorithms enabled: {torch.are_deterministic_algorithms_enabled()}")
@@ -103,6 +103,9 @@ def test_deterministic_mode():
         
     except ImportError:
         print("  PyTorch not installed - deterministic settings not applicable")
+        # Test with python framework instead
+        status = gen.set_seed("python")
+        print(f"  Python seeding status: {status}")
     
     print()
 
