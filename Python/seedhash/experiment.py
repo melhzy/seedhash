@@ -313,18 +313,19 @@ class SeedExperimentManager:
                 child_seeds = sampling_func_local(n_samples, seed_range)
                 current_level_seeds.extend(child_seeds)
                 
-                # Track hierarchy
-                if parent_seed not in self._seed_hierarchy:
-                    self._seed_hierarchy[parent_seed] = {'children': [], 'level': depth - 1}
-                
-                # Ensure 'children' key exists
-                if 'children' not in self._seed_hierarchy[parent_seed]:
-                    self._seed_hierarchy[parent_seed]['children'] = []
-                    
-                self._seed_hierarchy[parent_seed]['children'].extend(child_seeds)
+                # Track hierarchy. Nodes are keyed by seed value, so a seed that
+                # occurs more than once keeps the record from its first
+                # occurrence; overwriting it would rewrite its parent and could
+                # make a seed its own ancestor.
+                parent_node = self._seed_hierarchy.setdefault(
+                    parent_seed, {'children': [], 'level': depth - 1}
+                )
+                parent_node['children'].extend(child_seeds)
                 
                 for child in child_seeds:
-                    self._seed_hierarchy[child] = {'parent': parent_seed, 'level': depth}
+                    self._seed_hierarchy.setdefault(
+                        child, {'parent': parent_seed, 'children': [], 'level': depth}
+                    )
             
             hierarchy[depth] = current_level_seeds
         
@@ -347,11 +348,16 @@ class SeedExperimentManager:
             sampling_method: Sampling method used to generate this seed.
             metadata: Optional additional information.
         """
-        # Reconstruct seed hierarchy
+        # Reconstruct seed hierarchy, stopping if a seed repeats so that a
+        # cyclic parent chain cannot loop forever
         hierarchy = [seed]
+        visited = {seed}
         current = seed
         while current in self._seed_hierarchy and 'parent' in self._seed_hierarchy[current]:
             parent = self._seed_hierarchy[current]['parent']
+            if parent in visited:
+                break
+            visited.add(parent)
             hierarchy.insert(0, parent)
             current = parent
         
@@ -368,8 +374,9 @@ class SeedExperimentManager:
             seed_level=seed_level,
             sampling_method=sampling_method,
             ml_task=ml_task,
-            metrics=metrics,
-            metadata=metadata or {}
+            # Copy so later changes to the caller's dicts don't alter this result
+            metrics=dict(metrics),
+            metadata=dict(metadata or {})
         )
         
         self.results.append(result)

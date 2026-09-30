@@ -31,7 +31,7 @@ jobs:
     
     - name: Run Python tests
       run: |
-        pytest test_sampling_methods.py test_md5_usage.py test_dl_seeding.py -v --cov=seedhash --cov-report=xml
+        pytest test_sampling_methods.py test_md5_usage.py test_dl_seeding.py test_correctness.py -v --cov=seedhash --cov-report=xml
     
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
