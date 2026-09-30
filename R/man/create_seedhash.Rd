@@ -9,9 +9,9 @@ create_seedhash(input_string, min_value = 0, max_value = 2^31 - 1)
 \arguments{
 \item{input_string}{The string to hash for seed generation}
 
-\item{min_value}{Minimum value for random number range (default: 0)}
+\item{min_value}{Minimum value for random number range, inclusive (default: 0)}
 
-\item{max_value}{Maximum value for random number range (default: 2^31 - 1)}
+\item{max_value}{Maximum value for random number range, inclusive (default: 2^31 - 1)}
 }
 \value{
 A new SeedHashGenerator object
@@ -20,9 +20,7 @@ A new SeedHashGenerator object
 This is a convenience function to create a SeedHashGenerator object.
 }
 \examples{
-\dontrun{
 gen <- create_seedhash("Shalini")
 seeds <- gen$generate_seeds(10)
-}
 
 }

@@ -99,7 +99,7 @@ cat("=== Example 9: Comparing Different Strings ===\n")
 strings <- c("Alice", "Bob", "Charlie")
 for (str in strings) {
   gen <- SeedHashGenerator$new(str)
-  cat(sprintf("'%s' -> Hash: %s, Seed: %d\n", 
+  cat(sprintf("'%s' -> Hash: %s, Seed: %.0f\n", 
               str, gen$get_hash(), gen$seed_number))
 }
 cat("\n")

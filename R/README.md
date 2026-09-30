@@ -89,7 +89,8 @@ seeds <- gen$generate_seeds(10)
 The main class that handles seed generation:
 
 - **`new(input_string, min_value = 0, max_value = 2^31 - 1)`**: Initialize a new generator
-- **`generate_seeds(count)`**: Generate a specified number of random seeds
+- **`generate_seeds(count)`**: Generate a specified number of random seeds (leaves R's global random state unchanged)
+- **`set_seed()`**: Seed R's random number generator from the input string; use this instead of `set.seed(gen$seed_number)`, since `seed_number` can exceed R's integer range
 - **`get_hash()`**: Get the MD5 hash of the input string
 - **`print()`**: Display generator information
 
@@ -182,14 +183,14 @@ This R package mirrors the functionality of the Python `seedhash` library:
 
 ### Key Differences
 
-1. **Seed Size**: R uses 32-bit integers for seeds, while Python can handle larger integers. The R version uses the first 8 hex characters of the MD5 hash.
+1. **Seed Number**: Both versions take the MD5 digest of the UTF-8 encoded string modulo 2^32, so `seed_number` is the same in both languages. R stores it as a double because it can exceed R's integer range. The seeds from `generate_seeds()` differ between the languages because each uses its own random number generator.
 2. **Syntax**: R uses `$` for method calls (e.g., `gen$generate_seeds()`), while Python uses `.` (e.g., `gen.generate_seeds()`).
 3. **Random Number Generation**: R uses `sample.int()` while Python uses `random.randint()`.
 
 ## How It Works
 
 1. **Hash Generation**: The input string is hashed using MD5 to create a deterministic hexadecimal value
-2. **Seed Conversion**: The hash is converted to an integer seed
+2. **Seed Conversion**: The hash modulo 2^32 becomes the seed number, the same value the Python package produces
 3. **Random Generation**: R's random number generator is seeded with this value
 4. **Number Generation**: Random numbers are generated within the specified range
 
