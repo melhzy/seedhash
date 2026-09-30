@@ -7,17 +7,19 @@ import warnings
 from typing import List, Optional, Literal
 
 
-# Optional deep learning framework imports
+# Optional deep learning framework imports. A broken install can raise more
+# than ImportError (e.g. protobuf or NumPy ABI mismatches in TensorFlow), and
+# that must not make seedhash itself unimportable.
 try:
     import torch
     TORCH_AVAILABLE = True
-except ImportError:
+except Exception:
     TORCH_AVAILABLE = False
 
 try:
     import tensorflow as tf
     TF_AVAILABLE = True
-except ImportError:
+except Exception:
     TF_AVAILABLE = False
 
 try:
@@ -189,8 +191,9 @@ class SeedHashGenerator:
                     torch.backends.cudnn.deterministic = True
                     torch.backends.cudnn.benchmark = False
                     
-                    # Set environment variables for CUBLAS
-                    os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
+                    # Set environment variables for CUBLAS, keeping any
+                    # workspace config the user already chose
+                    os.environ.setdefault('CUBLAS_WORKSPACE_CONFIG', ':4096:8')
                 
                 status["torch"] = "seeded" + ("_deterministic" if deterministic else "")
             elif framework == "torch":
@@ -205,10 +208,14 @@ class SeedHashGenerator:
             if TF_AVAILABLE:
                 tf.random.set_seed(self.seed_number)
                 
-                # Set deterministic operations if requested
+                # Set deterministic operations if requested. TF 2.8+ ignores
+                # TF_DETERMINISTIC_OPS in favour of enable_op_determinism().
                 if deterministic:
-                    os.environ['TF_DETERMINISTIC_OPS'] = '1'
-                    os.environ['TF_CUDNN_DETERMINISTIC'] = '1'
+                    if hasattr(tf.config.experimental, "enable_op_determinism"):
+                        tf.config.experimental.enable_op_determinism()
+                    else:
+                        os.environ['TF_DETERMINISTIC_OPS'] = '1'
+                        os.environ['TF_CUDNN_DETERMINISTIC'] = '1'
                 
                 status["tensorflow"] = "seeded" + ("_deterministic" if deterministic else "")
             elif framework == "tensorflow":
@@ -255,12 +262,13 @@ class SeedHashGenerator:
         if count <= 0:
             raise ValueError("count must be a positive integer")
         
-        # Set the random seed
-        random.seed(self.seed_number)
+        # Use a private generator so the caller's global random state is
+        # untouched; it yields the same numbers random.seed() + randint() did
+        rng = random.Random(self.seed_number)
         
         # Generate random numbers
         random_numbers = [
-            random.randint(self.min_value, self.max_value) 
+            rng.randint(self.min_value, self.max_value)
             for _ in range(count)
         ]
         

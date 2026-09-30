@@ -8,15 +8,13 @@ from dataclasses import dataclass, field
 from datetime import datetime
 import warnings
 
+# pandas is only needed for DataFrame output; methods that need it warn or
+# raise when called, so a core-only install imports without warnings
 try:
     import pandas as pd
     PANDAS_AVAILABLE = True
 except ImportError:
     PANDAS_AVAILABLE = False
-    warnings.warn(
-        "pandas is not installed. Install with: pip install pandas\n"
-        "Experiment tracking requires pandas for DataFrame output."
-    )
 
 try:
     import numpy as np
@@ -119,11 +117,23 @@ class SeedSampler:
             n_strata: Number of strata (divisions) in the seed space.
         
         Returns:
-            List of stratified seeds with balanced coverage.
+            List of stratified seeds with balanced coverage. When n_samples is
+            not a multiple of n_strata, the extra samples go to the lowest strata.
+            Strata are (max - min) // n_strata wide, so the few values left over
+            at the top of the range are never drawn; changing that would change
+            the seeds this method has always produced.
+        
+        Raises:
+            ValueError: If max - min of seed_range is less than n_strata.
         """
         self.rng.seed(self.master_seed)
         
         min_seed, max_seed = seed_range
+        if max_seed - min_seed < n_strata:
+            raise ValueError(
+                f"seed_range {seed_range} is too narrow for n_strata={n_strata}; "
+                f"max - min must be at least n_strata"
+            )
         stratum_size = (max_seed - min_seed) // n_strata
         samples_per_stratum = n_samples // n_strata
         remainder = n_samples % n_strata
@@ -212,25 +222,26 @@ class SeedSampler:
         
         Returns:
             List of systematically sampled seeds at regular intervals.
+        
+        Raises:
+            ValueError: If n_samples is less than 1 or greater than max - min
+                of seed_range (the interval would be 0, repeating one seed).
         """
         self.rng.seed(self.master_seed)
         
         min_seed, max_seed = seed_range
+        if not 1 <= n_samples <= max_seed - min_seed:
+            raise ValueError(
+                f"n_samples must be between 1 and max - min of seed_range "
+                f"({max_seed - min_seed}), got {n_samples}"
+            )
         interval = (max_seed - min_seed) // n_samples
         
-        # Random starting point within first interval
+        # Random starting point within first interval. The last seed is at
+        # most min_seed + n_samples * interval <= max_seed, so none wrap.
         start = self.rng.randint(min_seed, min(min_seed + interval, max_seed))
         
-        seeds = []
-        for i in range(n_samples):
-            seed = start + (i * interval)
-            if seed <= max_seed:
-                seeds.append(seed)
-            else:
-                # Wrap around if needed
-                seeds.append(min_seed + (seed - max_seed))
-        
-        return seeds
+        return [start + (i * interval) for i in range(n_samples)]
 
 
 class SeedExperimentManager:
@@ -468,6 +479,22 @@ class SeedExperimentManager:
             raise ValueError(f"Unsupported format: {format}")
 
 
+def _paired_arrays(y_true, y_pred):
+    """Flatten y_true and y_pred, raising if they hold different numbers of values.
+    
+    Without this, shapes such as (n,) and (n, 1) broadcast to an (n, n) array
+    and every metric is silently computed over all cross pairs.
+    """
+    y_true = np.ravel(np.asarray(y_true))
+    y_pred = np.ravel(np.asarray(y_pred))
+    if y_true.shape != y_pred.shape:
+        raise ValueError(
+            f"y_true and y_pred must have the same number of values, "
+            f"got {y_true.size} and {y_pred.size}"
+        )
+    return y_true, y_pred
+
+
 class MLMetrics:
     """Common ML evaluation metrics for different task types."""
     
@@ -485,8 +512,7 @@ class MLMetrics:
         if not NUMPY_AVAILABLE:
             raise ImportError("numpy is required for metric calculation")
         
-        y_true = np.array(y_true)
-        y_pred = np.array(y_pred)
+        y_true, y_pred = _paired_arrays(y_true, y_pred)
         
         mse = np.mean((y_true - y_pred) ** 2)
         rmse = np.sqrt(mse)
@@ -508,39 +534,44 @@ class MLMetrics:
         }
     
     @staticmethod
-    def classification_metrics(y_true, y_pred, y_prob=None) -> Dict[str, float]:
+    def classification_metrics(y_true, y_pred, y_prob=None, pos_label=None) -> Dict[str, float]:
         """Calculate classification metrics.
         
         Args:
             y_true: True labels.
             y_pred: Predicted labels.
             y_prob: Predicted probabilities (optional, for AUC).
+            pos_label: Positive class for binary tasks. Defaults to 1 when it is
+                one of the two labels, otherwise to the larger label.
         
         Returns:
-            Dictionary with accuracy, precision, recall, F1.
+            Dictionary with accuracy, precision, recall, F1. Multi-class tasks
+            use macro averages (F1 is the mean of the per-class F1 scores).
         """
         if not NUMPY_AVAILABLE:
             raise ImportError("numpy is required for metric calculation")
         
-        y_true = np.array(y_true)
-        y_pred = np.array(y_pred)
+        y_true, y_pred = _paired_arrays(y_true, y_pred)
         
         # Accuracy
         accuracy = np.mean(y_true == y_pred)
         
+        classes = np.unique(y_true)
+        
         # For binary classification
-        if len(np.unique(y_true)) == 2:
-            tp = np.sum((y_true == 1) & (y_pred == 1))
-            fp = np.sum((y_true == 0) & (y_pred == 1))
-            fn = np.sum((y_true == 1) & (y_pred == 0))
+        if len(classes) == 2:
+            if pos_label is None:
+                pos_label = 1 if 1 in classes.tolist() else classes[-1]
+            tp = np.sum((y_true == pos_label) & (y_pred == pos_label))
+            fp = np.sum((y_true != pos_label) & (y_pred == pos_label))
+            fn = np.sum((y_true == pos_label) & (y_pred != pos_label))
             
             precision = tp / (tp + fp) if (tp + fp) > 0 else 0
             recall = tp / (tp + fn) if (tp + fn) > 0 else 0
             f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
         else:
             # Multi-class: use macro average
-            classes = np.unique(y_true)
-            precisions, recalls = [], []
+            precisions, recalls, f1s = [], [], []
             
             for cls in classes:
                 tp = np.sum((y_true == cls) & (y_pred == cls))
@@ -552,10 +583,11 @@ class MLMetrics:
                 
                 precisions.append(prec)
                 recalls.append(rec)
+                f1s.append(2 * prec * rec / (prec + rec) if (prec + rec) > 0 else 0)
             
             precision = np.mean(precisions)
             recall = np.mean(recalls)
-            f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+            f1 = np.mean(f1s)
         
         return {
             'accuracy': float(accuracy),
@@ -573,51 +605,52 @@ class MLMetrics:
             labels: Cluster labels.
         
         Returns:
-            Dictionary with silhouette score and Davies-Bouldin index.
+            Dictionary with silhouette score, number of clusters and number of
+            samples. The silhouette is 0.0 unless there are between 2 and
+            n_samples - 1 clusters.
         """
         if not NUMPY_AVAILABLE:
             raise ImportError("numpy is required for metric calculation")
         
-        X = np.array(X)
-        labels = np.array(labels)
+        X = np.asarray(X, dtype=float)
+        if X.ndim == 1:
+            X = X.reshape(-1, 1)
+        labels = np.ravel(np.asarray(labels))
+        if len(labels) != len(X):
+            raise ValueError(
+                f"X and labels must have the same number of samples, "
+                f"got {len(X)} and {len(labels)}"
+            )
         
-        # Simplified silhouette score calculation
-        n_clusters = len(np.unique(labels))
-        if n_clusters < 2 or n_clusters >= len(X):
-            return {'silhouette': 0.0, 'davies_bouldin': float('inf')}
-        
-        # Calculate intra-cluster distances (a)
-        a_values = []
-        for i in range(len(X)):
-            same_cluster = X[labels == labels[i]]
-            if len(same_cluster) > 1:
-                a = np.mean([np.linalg.norm(X[i] - x) for x in same_cluster if not np.array_equal(X[i], x)])
-            else:
-                a = 0
-            a_values.append(a)
-        
-        # Calculate nearest-cluster distances (b)
-        b_values = []
-        for i in range(len(X)):
-            min_b = float('inf')
-            for cluster in np.unique(labels):
-                if cluster != labels[i]:
-                    other_cluster = X[labels == cluster]
-                    b = np.mean([np.linalg.norm(X[i] - x) for x in other_cluster])
-                    min_b = min(min_b, b)
-            b_values.append(min_b)
-        
-        # Silhouette score
-        silhouette = np.mean([
-            (b - a) / max(a, b) if max(a, b) > 0 else 0
-            for a, b in zip(a_values, b_values)
-        ])
-        
-        return {
-            'silhouette': float(silhouette),
+        clusters = np.unique(labels)
+        n_clusters = len(clusters)
+        metrics = {
+            'silhouette': 0.0,
             'n_clusters': int(n_clusters),
             'n_samples': int(len(X))
         }
+        if n_clusters < 2 or n_clusters >= len(X):
+            return metrics
+        
+        scores = []
+        for i in range(len(X)):
+            distances = np.linalg.norm(X - X[i], axis=1)
+            
+            # Exclude the point itself by index, not by value, so identical
+            # points in the same cluster still count
+            same_cluster = labels == labels[i]
+            same_cluster[i] = False
+            if not same_cluster.any():
+                # A point alone in its cluster scores 0 (as in sklearn)
+                scores.append(0.0)
+                continue
+            
+            a = distances[same_cluster].mean()
+            b = min(distances[labels == c].mean() for c in clusters if c != labels[i])
+            scores.append((b - a) / max(a, b) if max(a, b) > 0 else 0.0)
+        
+        metrics['silhouette'] = float(np.mean(scores))
+        return metrics
     
     @staticmethod
     def semi_supervised_metrics(
@@ -725,13 +758,16 @@ class MLMetrics:
         
         # Convergence indicators
         if len(episode_rewards) >= 10:
-            # Recent performance (last 20%)
-            recent_window = max(10, len(episode_rewards) // 5)
+            # Recent performance (last 20%, at least 10 episodes), capped at
+            # half the episodes so the early and recent windows never overlap
+            recent_window = min(max(10, len(episode_rewards) // 5), len(episode_rewards) // 2)
             recent_rewards = episode_rewards[-recent_window:]
+            early_mean = np.mean(episode_rewards[:recent_window])
             metrics['recent_mean_reward'] = float(np.mean(recent_rewards))
+            # Divide by the magnitude so that rising negative rewards
+            # (e.g. -100 to -50) count as improvement
             metrics['improvement_rate'] = float(
-                (np.mean(recent_rewards) - np.mean(episode_rewards[:recent_window])) / 
-                (np.mean(episode_rewards[:recent_window]) + 1e-8)
+                (np.mean(recent_rewards) - early_mean) / (abs(early_mean) + 1e-8)
             )
         
         return metrics
