@@ -1,6 +1,6 @@
 # SeedHash: MD5-Based Deterministic Random Seed Generator
 
-[![Python Version](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/)
+[![Python Version](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![R Version](https://img.shields.io/badge/R-3.5+-blue.svg)](https://www.r-project.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://github.com/melhzy/seedhash/workflows/Tests/badge.svg)](https://github.com/melhzy/seedhash/actions)

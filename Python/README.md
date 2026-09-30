@@ -698,4 +698,4 @@ For converting Python features to R, see [PYTHON_TO_R_GUIDE.md](../PYTHON_TO_R_G
 
 **Version**: 0.3.0  
 **License**: MIT  
-**Python**: >=3.7
+**Python**: >=3.8
