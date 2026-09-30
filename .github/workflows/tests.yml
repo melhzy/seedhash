@@ -62,9 +62,15 @@ jobs:
         install.packages(c("R6", "digest", "testthat"))
       shell: Rscript {0}
     
+    - name: Install package
+      run: |
+        install.packages("R", repos = NULL, type = "source")
+      shell: Rscript {0}
+
     - name: Run R tests
       run: |
-        source("R/tests/test_seedhash.R")
+        testthat::test_dir("R/tests/testthat", package = "seedhash",
+                           load_package = "installed", stop_on_failure = TRUE)
       shell: Rscript {0}
 
   lint-python:

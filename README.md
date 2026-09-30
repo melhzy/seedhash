@@ -362,7 +362,9 @@ R/
 │   └── seedhash.R           # R package implementation
 ├── man/                     # R documentation
 ├── tests/
-│   └── test_seedhash.R      # R tests
+│   ├── testthat.R           # testthat entry point
+│   └── testthat/
+│       └── test-seedhash.R  # R tests
 ├── examples/
 │   └── example_usage.R
 ├── DESCRIPTION              # R package metadata

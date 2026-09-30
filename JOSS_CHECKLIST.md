@@ -36,7 +36,7 @@ The paper.md includes all required sections:
 
 ### Testing ⚠️
 
-- [x] Test files exist (`test_*.py`, `test_seedhash.R`)
+- [x] Test files exist (`test_*.py`, `tests/testthat/test-seedhash.R`)
 - [x] CI workflow created (`.github/workflows/tests.yml`)
 - [ ] **TODO**: Verify CI runs successfully on GitHub
 - [ ] **TODO**: Add test coverage badge to README
