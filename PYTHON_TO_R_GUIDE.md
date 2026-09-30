@@ -39,7 +39,7 @@
 **Python:**
 ```python
 # Unlimited precision - any integer size works
-hash_int = int(hash_hex[:8], 16)  # Can be any size
+hash_int = int(hash_hex, 16) % 2**32  # 0 to 2^32 - 1
 min_value = -10**33  # Works fine
 max_value = 10**33   # Works fine
 range_size = max_value - min_value  # No problem
@@ -47,16 +47,18 @@ range_size = max_value - min_value  # No problem
 
 **R - CRITICAL LIMITATIONS:**
 ```r
-# 32-bit signed integer limit: -2,147,483,648 to 2,147,483,647
-hash_int <- strtoi(substr(hash_hex, 1, 7), base = 16)  # Use 7 chars, not 8!
-min_value <- -1e9    # Safe: -1,000,000,000
-max_value <- 1e9     # Safe:  1,000,000,000
-range_size <- max_value - min_value + 1  # Must be <= 2,147,483,647
+# 32-bit signed integer limit: -2,147,483,647 to 2,147,483,647 (-2^31 is NA)
+# The last 8 hex digits are the digest mod 2^32; build them as a double
+hash_int <- strtoi(substr(hash_hex, 25, 28), 16L) * 65536 +
+  strtoi(substr(hash_hex, 29, 32), 16L)
+min_value <- 0            # Same defaults as Python
+max_value <- 2^31 - 1
+range_size <- as.numeric(max_value) - min_value + 1  # Compute in doubles
 ```
 
 **Key Conversion Rules:**
-1. **Hex to Integer**: Use max 7 hex characters (28 bits) in R, not 8
-2. **Default Ranges**: Use -1e9 to 1e9 in R (not 0 to 2^31-1)
+1. **Hex to Integer**: Match Python's `% 2**32` by reading the last 8 hex digits as a double; `strtoi()` on all 8 at once returns NA above 2^31 - 1
+2. **Default Ranges**: Keep Python's 0 to 2^31-1; `sample.int()` accepts ranges wider than `.Machine$integer.max`
 3. **Range Validation**: Check BOTH values AND total range span
 4. **Coercion**: Always validate BEFORE `as.integer()` conversion
 
@@ -265,19 +267,14 @@ SeedHashGenerator <- R6::R6Class(
   # Private methods (Python's _method)
   private = list(
     generate_seed = function() {
-      # Get MD5 hash
-      hash_value <- digest::digest(self$input_string, algo = "md5", serialize = FALSE)
+      # Get MD5 hash of the UTF-8 bytes, as Python's .encode('utf-8') does
+      hash_value <- digest::digest(enc2utf8(self$input_string), algo = "md5",
+                                   serialize = FALSE)
       
-      # Convert hex to integer
-      # CRITICAL: Use 7 chars (28 bits) not 8 (32 bits) to avoid overflow
-      seed <- strtoi(substr(hash_value, 1, 7), base = 16)
-      
-      # Validate result
-      if (is.na(seed)) {
-        stop("Failed to generate valid seed from input string")
-      }
-      
-      return(seed)
+      # Digest mod 2^32 (last 8 hex digits), matching Python. It can exceed
+      # R's integer range, so build it as a double from two 16-bit halves
+      strtoi(substr(hash_value, 25, 28), 16L) * 65536 +
+        strtoi(substr(hash_value, 29, 32), 16L)
     }
   )
 )
@@ -293,7 +290,7 @@ SeedHashGenerator <- R6::R6Class(
 |-----------|--------|---|
 | Import | `import hashlib` | `library(digest)` |
 | Hash string | `hashlib.md5(s.encode()).hexdigest()` | `digest::digest(s, algo="md5", serialize=FALSE)` |
-| Hex to int | `int(hex_str[:8], 16)` | `strtoi(substr(hex_str, 1, 7), base=16)` ⚠️ Use 7 not 8! |
+| Hash to seed | `int(hex_str, 16) % 2**32` | `strtoi(substr(hex_str, 25, 28), 16) * 65536 + strtoi(substr(hex_str, 29, 32), 16)` |
 
 ### Random Generation
 
@@ -539,20 +536,20 @@ install.packages("seedhash")
 1. **Integer Limits** ⚠️ CRITICAL
    - Python: Unlimited ✅
    - R: ±2.1 billion ⚠️
-   - Solution: Validate BEFORE conversion, use smaller defaults (-1e9 to 1e9)
-   - **Real Issue**: Used full range 0 to 2^31-1, caused overflow in generate_seeds()
+   - Solution: Validate BEFORE conversion, and do range arithmetic in doubles
+   - **Real Issue**: `sample.int(...) + min_value` in integers overflowed to NA at the top of the range
 
 2. **Hex Conversion** ⚠️ CRITICAL FIX
-   - Python: `int(hash[:8], 16)` works
-   - R: `strtoi(substr(hash, 1, 7), 16)` - use 7 not 8!
-   - Reason: 8 hex chars = 32 bits can overflow signed int
-   - **Real Issue**: 8 chars caused NA values, set.seed() failed with "not a valid integer"
+   - Python: `int(hash, 16) % 2**32`
+   - R: last 8 hex digits built as a double, then mapped into signed-int range for `set.seed()`
+   - Reason: `strtoi()` on 8 hex digits returns NA above 2^31 - 1
+   - **Real Issue**: an earlier workaround used the first 7 hex digits, which gave different seeds from Python
 
 3. **Default Ranges** ⚠️ CRITICAL FIX
    - Python: Can use any range
-   - R: Use -1e9 to 1e9 (not 0 to 2^31-1)
-   - Reason: Range SPAN must also fit in integer
-   - **Real Issue**: Default 0 to 2^31-1 worked for initialization but failed in generate_seeds()
+   - R: Use the same 0 to 2^31-1 default; `sample.int()` handles spans above `.Machine$integer.max`
+   - Reason: Different defaults make the two entry points and the two languages disagree
+   - **Real Issue**: A "range too large" check made the 0 to 2^31-1 default fail in generate_seeds()
 
 4. **Package Installation** ⚠️ IMPORTANT
    - Python: pip handles everything reliably
@@ -610,9 +607,9 @@ When adding new Python features to R:
 - [ ] Test with edge cases: -2^31, 2^31-1, ranges > 2.1B
 
 **Code Implementation:**
-- [ ] Use 7 hex characters (not 8) for hash-to-int conversion
-- [ ] Set safe defaults: -1e9 to 1e9 (not 0 to 2^31-1)
-- [ ] Add range size validation before sample.int()
+- [ ] Derive the seed exactly as Python does (digest mod 2^32) and test against Python's values
+- [ ] Use the same defaults as Python (0 to 2^31-1)
+- [ ] Do range arithmetic in doubles before sample.int()
 - [ ] Provide clear error messages with sprintf()
 - [ ] Use R6 class structure properly (self$field, not self.field)
 

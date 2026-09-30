@@ -240,15 +240,15 @@ tryCatch({
 
 **Python:**
 - Uses unlimited precision integers
-- Can handle the full MD5 hash (128 bits)
+- Seed number is the MD5 digest modulo 2^32
 - Seed range up to 2^31 - 1 by default
 
 **R:**
 - Uses 32-bit integers (limited to ~2.1 billion)
-- Uses first 8 hex characters of MD5 hash
+- Seed number is the MD5 digest modulo 2^32, stored as a double
 - Same default seed range (2^31 - 1)
 
-**Impact:** Seeds will differ between Python and R versions because they use different portions of the MD5 hash.
+**Impact:** `seed_number` is the same in both languages. Because it can exceed R's integer range, seed R's generator with `gen$set_seed()` rather than `set.seed(gen$seed_number)`.
 
 ### 2. Random Number Generation
 
@@ -260,7 +260,7 @@ random_numbers = [random.randint(min_val, max_val) for _ in range(count)]
 
 **R:**
 ```r
-set.seed(seed_number)
+gen$set_seed()  # set.seed() with seed_number mapped into R's integer range
 random_numbers <- sample.int(n = max_val - min_val + 1, size = count, replace = TRUE) + min_val - 1
 ```
 
@@ -370,33 +370,27 @@ if (!is.character(input_string) || length(input_string) != 1) {
 
 ## Reproducibility Across Languages
 
-**Important Note:** While each implementation is reproducible within its own language, the actual random numbers generated will differ between Python and R even with the same input string. This is due to:
+Both implementations derive `seed_number` the same way: the MD5 digest of the UTF-8 encoded input string, modulo 2^32. The same string therefore has the same `seed_number` in Python and R.
 
-1. Different hash-to-seed conversion (full hash vs. 8 chars)
-2. Different random number generation algorithms
-3. Different seed handling mechanisms
+The seeds returned by `generate_seeds()` still differ between the languages, because each one draws them from its own random number generator (Python's `random.Random` and R's `sample.int()`). Each implementation is reproducible within its own language. If you need identical seed lists in both languages, export the generated seeds rather than sharing only the input string.
 
-If you need identical results across both languages, you would need to export and share the actual generated seeds rather than just the input string.
-
-## Example: Same Input, Different Results
+## Example: Same Seed Number, Different Seed Lists
 
 **Python:**
 ```python
 gen = SeedHashGenerator("test")
-print(gen.seed_number)  # Example: 1234567890123456789...
-seeds = gen.generate_seeds(3)
-print(seeds)  # Example: [1234567, 9876543, 456789]
+print(gen.seed_number)  # 640136438
+seeds = gen.generate_seeds(3)  # Python's own sequence
 ```
 
 **R:**
 ```r
 gen <- SeedHashGenerator$new("test")
-print(gen$seed_number)  # Example: 12345678 (different!)
-seeds <- gen$generate_seeds(3)
-print(seeds)  # Example: [234567, 876543, 56789] (different!)
+print(gen$seed_number)  # 640136438 (same as Python)
+seeds <- gen$generate_seeds(3)  # R's own sequence, differs from Python
 ```
 
-Both are reproducible within their language, but produce different results from each other.
+R stores `seed_number` as a double because it can exceed R's integer range; it is converted to a valid `set.seed()` value internally.
 
 ## Conclusion
 
