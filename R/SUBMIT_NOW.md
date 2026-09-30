@@ -125,7 +125,7 @@ devtools::build()
 - **Version**: 0.1.0
 - **Maintainer**: melhzy <melhzy@gmail.com>
 - **License**: MIT
-- **Dependencies**: R (>= 3.5.0), digest, R6
+- **Dependencies**: R (>= 3.6.0), digest, R6
 - **Description**: Deterministic seed generation from strings using MD5
 
 ## ✅ Pre-Submission Checklist

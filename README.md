@@ -384,11 +384,13 @@ Root files:
 ### Running Tests
 
 ```bash
-# Install in development mode
-pip install -e .
+# Python: install in development mode, then run the tests from the repository root
+pip install -e "Python[experiment]" pytest
+pytest test_*.py -v
 
-# Run the example script
-python examples/demo.py
+# R: install the package, then run its testthat suite
+R CMD INSTALL R
+Rscript -e 'testthat::test_dir("R/tests/testthat", package = "seedhash", load_package = "installed")'
 ```
 
 ### Building the Package

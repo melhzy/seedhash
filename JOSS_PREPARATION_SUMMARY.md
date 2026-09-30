@@ -110,7 +110,7 @@ I've prepared SeedHash for submission to the Journal of Open Source Software (JO
 6. **Verify All Tests Run**
    ```bash
    # Python
-   pytest test_sampling_methods.py test_md5_usage.py test_dl_seeding.py -v
+   pytest test_sampling_methods.py test_md5_usage.py test_dl_seeding.py test_correctness.py -v
    
    # R
    R CMD INSTALL R

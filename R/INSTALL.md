@@ -4,7 +4,7 @@
 
 Before installing the seedhash R package, ensure you have:
 
-1. **R** (version 3.5.0 or higher)
+1. **R** (version 3.6.0 or higher)
 2. **Required packages**: `R6`, `digest` (installed automatically)
 
 ## Method 1: Install from GitHub using pak ✅ RECOMMENDED

@@ -676,9 +676,11 @@ python examples/advanced_ml_paradigms.py
 
 ## Testing
 
+The tests live in the repository root:
+
 ```bash
-cd Python
-pytest tests/
+pip install -e "Python[experiment]" pytest
+pytest test_*.py -v
 ```
 
 ## Building

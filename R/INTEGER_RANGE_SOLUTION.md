@@ -10,7 +10,7 @@ generator <- SeedHashGenerator$new(
 )
 ```
 
-**Error**: `min_value (10^33) is outside R's integer range`
+**Error**: `min_value (-999999999999999945575230987042816) is outside R's integer range [-2147483647, 2147483647]`
 
 ---
 
@@ -33,7 +33,7 @@ seeds <- generator$generate_seeds(5)
 print(seeds)
 ```
 
-**Output**: `-978425718, 888036529, 835804612, -141761863, 515662747`
+**Output**: `291580102, 166267505, 964507646, -491586732, 526158187`
 
 ---
 
@@ -41,9 +41,9 @@ print(seeds)
 
 ### The Problem
 R uses **32-bit integers** with these limits:
-- **Minimum**: `-2,147,483,648` (-2^31)
+- **Minimum**: `-2,147,483,647` (-(2^31 - 1); -2^31 is NA in R)
 - **Maximum**: `2,147,483,647` (2^31 - 1)
-- **Maximum range span**: `2,147,483,647` (can't span full min to max)
+- **Maximum range span**: the full range, `-(2^31 - 1)` to `2^31 - 1`
 
 Your value `10^33` = **1,000,000,000,000,000,000,000,000,000,000,000** is way too large!
 
@@ -58,6 +58,7 @@ Your value `10^33` = **1,000,000,000,000,000,000,000,000,000,000,000** is way to
 | **Large range** | -1e9 | 1e9 | ✅ Works |
 | **Scientific range** | -1e7 | 1e7 | ✅ Works |
 | **Default range** | 0 | 2^31-1 | ✅ Works |
+| **Full range** | -(2^31-1) | 2^31-1 | ✅ Works |
 
 ---
 
@@ -111,7 +112,7 @@ seeds <- generator$generate_seeds(5)
 
 ## 🔍 Understanding the Limits
 
-### Why Can't We Use -2^31 to 2^31-1?
+### Why Can't We Use -2^31?
 
 ```r
 # This fails:
@@ -120,19 +121,13 @@ generator <- SeedHashGenerator$new(
   min_value = -2^31,        # -2,147,483,648
   max_value = 2^31 - 1      #  2,147,483,647
 )
-# Error: Range is too large. Maximum range size is 2147483647
+# Error: min_value (-2147483648) is outside R's integer range [-2147483647, 2147483647]
+
+# This works: the full range R can store
+generator <- SeedHashGenerator$new("test", -(2^31 - 1), 2^31 - 1)
 ```
 
-**Reason**: The **span** (-2^31 to 2^31-1) is approximately 4.3 billion, but R's `sample.int()` can only handle ranges up to 2.1 billion.
-
-### Maximum Safe Range Span
-
-The span (max - min + 1) must be ≤ 2,147,483,647
-
-**Examples**:
-- -1e9 to 1e9: span = 2,000,000,001 ✅
-- 0 to 2^31-1: span = 2,147,483,647 ✅
-- -2^31 to 2^31-1: span ≈ 4.3e9 ❌
+**Reason**: R reserves the bit pattern of -2^31 for `NA_integer_`, so `as.integer(-2^31)` is `NA`. Any range inside ±(2^31 - 1) works, including spans of about 4.3 billion values.
 
 ---
 
@@ -183,9 +178,9 @@ min_value = -10^33  # Way too large!
 max_value = 10^33   # Won't work in R
 
 # 📊 LIMITS
-# Min: -2,147,483,648
+# Min: -2,147,483,647
 # Max:  2,147,483,647
-# Span: ≤ 2,147,483,647
+# Span: up to the full range
 ```
 
 ---

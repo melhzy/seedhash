@@ -105,13 +105,14 @@ We actively welcome pull requests!
 
 3. **Install development dependencies:**
    ```bash
-   pip install -e .
+   pip install -e ".[experiment]"
    pip install pytest pytest-cov
    ```
 
-4. **Run tests:**
+4. **Run tests** (the test files are in the repository root):
    ```bash
-   pytest tests/ -v
+   cd ..
+   pytest test_*.py -v
    ```
 
 ### R Development
@@ -192,30 +193,31 @@ All contributions must include appropriate tests.
 ### Python Testing
 
 - Use `pytest` for testing
-- Place tests in `Python/tests/`
+- Place tests in `test_*.py` files in the repository root
 - Aim for high code coverage
 - Test edge cases and error conditions
 
 ```bash
-# Run tests
-pytest tests/ -v
+# Run tests (from the repository root)
+pytest test_*.py -v
 
 # Run with coverage
-pytest tests/ --cov=seedhash --cov-report=html
+pytest test_*.py --cov=seedhash --cov-report=html
 ```
 
 ### R Testing
 
 - Use `testthat` for testing
-- Place tests in `R/tests/`
+- Place tests in `R/tests/testthat/`
 - Test core functionality and edge cases
+- Seed values shared with Python must match the Python tests (see `test_correctness.py`)
 
 ```r
-# Run tests
-devtools::test()
+# Run tests (from the repository root)
+devtools::test("R")
 
 # Check package
-devtools::check()
+devtools::check("R")
 ```
 
 ## Documentation

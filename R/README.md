@@ -27,7 +27,7 @@ devtools::install_github("melhzy/seedhash", subdir = "R")
 ### Dependencies
 
 The package requires:
-- R (>= 3.5.0)
+- R (>= 3.6.0)
 - digest
 - R6
 
