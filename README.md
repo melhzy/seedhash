@@ -36,6 +36,7 @@ seedhash/
 - 🔄 **Cross-Language**: Available in both Python and R
 - 🎲 **4 Sampling Methods**: Simple, Stratified, Cluster, and Systematic random sampling
 - 🧪 **ML Integration**: Experiment tracking with hierarchical seed management
+- 🖥️ **Multi-GPU Ready**: Seeds PyTorch the same way on one GPU, several GPUs, or several nodes (torchrun, SLURM, MPI)
 
 ## Installation
 
@@ -351,6 +352,7 @@ Python/
 │   ├── demo.py              # Usage examples
 │   ├── hierarchical_sampling.py
 │   ├── deep_learning_seeding.py
+│   ├── distributed_seeding.py  # Multi-GPU / multi-node
 │   └── advanced_ml_paradigms.py
 ├── setup.py                 # Setup configuration
 ├── pyproject.toml           # Modern Python packaging
