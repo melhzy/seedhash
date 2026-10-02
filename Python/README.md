@@ -127,6 +127,32 @@ print(status)  # Shows which frameworks were seeded
 status = gen.set_seed("all", deterministic=True)
 ```
 
+#### Multi-GPU and Multi-Node Training (PyTorch)
+
+Call `set_seed()` in every process. It seeds the CPU and every visible GPU of the process, and the code is the same for all three setups:
+
+| Setup | Launch |
+|-------|--------|
+| One GPU on one node | `python train.py` |
+| Several GPUs on one node | `torchrun --standalone --nproc-per-node=4 train.py` |
+| GPUs on several nodes | `torchrun --nnodes=2 --nproc-per-node=4 --node-rank=<n> --master-addr=<node 0> --master-port=29500 train.py` on each node (also under SLURM or MPI) |
+
+By default every process uses `seed_number`. Pass `per_rank=True` to give each process its own seed, `(seed_number + global_rank) mod 2^32`, so that ranks draw different augmentations and dropout masks:
+
+```python
+gen = SeedHashGenerator("resnet50_run1")
+gen.set_seed("torch", per_rank=True)  # rank 0 still uses gen.seed_number
+print(gen.rank_seed())                # this process's seed
+```
+
+- The global rank comes from `torch.distributed` once the process group is initialized, and otherwise from the launcher's environment: `RANK` (torchrun, DeepSpeed, Accelerate), `OMPI_COMM_WORLD_RANK` (Open MPI), `PMI_RANK` (MPICH, Intel MPI) or `SLURM_PROCID`. `LOCAL_RANK` is never used, because it repeats on every node.
+- Seeds depend only on the global rank, so 8 processes give the same results on one node with 8 GPUs as on two nodes with 4 GPUs each.
+- `torch.multiprocessing.spawn` sets none of these variables, so pass the rank: `gen.set_seed("torch", per_rank=True, rank=rank)`.
+- `DistributedSampler` must shuffle the same way on every rank, so give it the shared seed: `DistributedSampler(dataset, seed=gen.seed_number)`.
+- DistributedDataParallel copies rank 0's initial weights to every rank, so per-rank seeds do not change model initialization. With FSDP, set `sync_module_states=True` for the same effect.
+
+See [examples/distributed_seeding.py](examples/distributed_seeding.py) for a runnable script.
+
 ## Features
 
 - **Unlimited integer range** (Python's arbitrary precision integers)
@@ -138,6 +164,7 @@ status = gen.set_seed("all", deterministic=True)
   - NumPy seeding
   - Deterministic mode for maximum reproducibility
   - Seed all frameworks with one command
+  - Single-GPU, multi-GPU and multi-node PyTorch jobs (torchrun, SLURM, MPI)
 - **Fast** MD5-based hashing
 - **Simple API** with clear error messages
 
@@ -152,7 +179,7 @@ status = gen.set_seed("all", deterministic=True)
 
 ## API Reference
 
-### `set_seed(framework="torch", deterministic=True)`
+### `set_seed(framework="torch", deterministic=True, per_rank=False, rank=None)`
 
 Seed the specified framework(s).
 
@@ -164,6 +191,8 @@ Seed the specified framework(s).
   - `"python"` - Python's random module only
   - `"all"` - All available frameworks
 - `deterministic` (bool): Enable deterministic algorithms (default: True)
+- `per_rank` (bool): Use `rank_seed(rank)` instead of `seed_number`, so each process of a distributed job gets its own seed (default: False)
+- `rank` (int): Global rank for `per_rank=True`; detected automatically if omitted
 
 **Returns:** Dictionary with seeding status for each framework
 
@@ -173,14 +202,24 @@ gen.set_seed()                              # PyTorch (default)
 gen.set_seed("tensorflow")                  # TensorFlow
 gen.set_seed("all")                         # All frameworks
 gen.set_seed("torch", deterministic=False)  # PyTorch, non-deterministic
+gen.set_seed("torch", per_rank=True)        # One seed per distributed process
 ```
 
-### `seed_all(deterministic=True)`
+### `rank_seed(rank=None)`
+
+Return the seed a distributed process uses with `per_rank=True`: `(seed_number + rank) mod 2^32`. The global rank is detected with `get_global_rank()` if omitted.
+
+### `get_global_rank()`
+
+Module-level function (`from seedhash import get_global_rank`) that returns this process's global rank: from `torch.distributed` if a process group is initialized, otherwise from `RANK`, `OMPI_COMM_WORLD_RANK`, `PMI_RANK` or `SLURM_PROCID`, and 0 outside a distributed job.
+
+### `seed_all(deterministic=True, per_rank=False, rank=None)`
 
 Convenience method to seed all available frameworks.
 
 **Parameters:**
 - `deterministic` (bool): Enable deterministic algorithms (default: True)
+- `per_rank`, `rank`: As for `set_seed()`
 
 **Returns:** Dictionary with seeding status
 
@@ -198,6 +237,8 @@ See [examples/deep_learning_seeding.py](examples/deep_learning_seeding.py) for c
 - NumPy reproducibility
 - Multi-framework experiments
 - Deterministic mode usage
+
+See [examples/distributed_seeding.py](examples/distributed_seeding.py) for multi-GPU and multi-node seeding with `torchrun`.
 
 Run examples:
 ```bash
@@ -682,6 +723,8 @@ The tests live in the repository root:
 pip install -e "Python[experiment]" pytest
 pytest test_*.py -v
 ```
+
+The multi-process tests in `test_distributed_seeding.py` need PyTorch and are skipped without it.
 
 ## Building
 

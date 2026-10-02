@@ -114,6 +114,7 @@ We actively welcome pull requests!
    cd ..
    pytest test_*.py -v
    ```
+   The multi-process tests in `test_distributed_seeding.py` need PyTorch (`pip install torch`) and are skipped without it.
 
 ### R Development
 

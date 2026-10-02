@@ -31,6 +31,46 @@ except ImportError:
 
 FrameworkType = Literal["torch", "tensorflow", "numpy", "all", "python"]
 
+# Environment variables holding a process's global rank, checked in order:
+# torchrun and torch.distributed.launch (also set by DeepSpeed and
+# Accelerate), Open MPI, MPICH/Intel MPI, and SLURM. torchrun sets RANK when
+# it runs under SLURM, so RANK must be checked before SLURM_PROCID.
+RANK_ENV_VARS = ("RANK", "OMPI_COMM_WORLD_RANK", "PMI_RANK", "SLURM_PROCID")
+
+
+def get_global_rank() -> int:
+    """Return this process's global rank in a distributed job, or 0 outside one.
+    
+    The global rank is unique across all nodes, unlike LOCAL_RANK, which
+    repeats on every node. It is read from torch.distributed when a process
+    group is initialized, otherwise from the first variable in RANK_ENV_VARS
+    that is set.
+    
+    Returns:
+        The global rank, or 0 if no distributed job is detected.
+    
+    Raises:
+        ValueError: If a rank environment variable is not a non-negative integer.
+    """
+    dist = getattr(torch, "distributed", None) if TORCH_AVAILABLE else None
+    if dist is not None and dist.is_available() and dist.is_initialized():
+        return dist.get_rank()
+    
+    for name in RANK_ENV_VARS:
+        value = os.environ.get(name, "").strip()
+        if value:
+            try:
+                rank = int(value)
+            except ValueError:
+                rank = -1
+            if rank < 0:
+                raise ValueError(
+                    f"Environment variable {name}={value!r} is not a valid rank"
+                )
+            return rank
+    
+    return 0
+
 
 class SeedHashGenerator:
     """Generate deterministic random seeds from string input using MD5 hashing.
@@ -107,12 +147,45 @@ class SeedHashGenerator:
         # Use modulo 2^32 to ensure compatibility with all frameworks
         return int(hashed_value, 16) % (2**32)
     
+    def rank_seed(self, rank: Optional[int] = None) -> int:
+        """Return the seed for one process of a distributed job.
+        
+        The seed is (seed_number + rank) mod 2^32, so rank 0, like any
+        non-distributed run, uses seed_number itself, and every process of a
+        job with fewer than 2^32 processes gets a different seed.
+        
+        Args:
+            rank: Global rank of the process (not LOCAL_RANK, which repeats
+                on every node). Detected with get_global_rank() if None.
+        
+        Returns:
+            The seed for that rank, in [0, 2^32 - 1].
+        
+        Raises:
+            TypeError: If rank is not an integer.
+            ValueError: If rank is negative.
+        """
+        if rank is None:
+            rank = get_global_rank()
+        elif isinstance(rank, bool) or not isinstance(rank, int):
+            raise TypeError("rank must be an integer")
+        elif rank < 0:
+            raise ValueError(f"rank must be non-negative, got {rank}")
+        
+        return (self.seed_number + rank) % (2**32)
+    
     def set_seed(
         self, 
         framework: FrameworkType = "torch",
-        deterministic: bool = True
+        deterministic: bool = True,
+        per_rank: bool = False,
+        rank: Optional[int] = None
     ) -> dict:
         """Set random seeds for specified deep learning framework(s).
+        
+        Works the same on one GPU, several GPUs on one node and GPUs across
+        several nodes: call it in every process. All visible GPUs of a process
+        are seeded, so it does not matter which device is current.
         
         Args:
             framework: Which framework to seed. Options:
@@ -124,18 +197,30 @@ class SeedHashGenerator:
             deterministic: If True, enable deterministic algorithms (PyTorch only).
                 For PyTorch, sets torch.use_deterministic_algorithms(True) and
                 CUBLAS environment variables for reproducibility.
+            per_rank: If False (default), every process of a distributed job
+                uses seed_number. If True, each process uses rank_seed(rank), so
+                ranks draw different random numbers, e.g. for data augmentation
+                and dropout. DistributedDataParallel copies rank 0's initial
+                weights to all ranks either way; FSDP needs
+                sync_module_states=True for that.
+            rank: Global rank to use with per_rank=True. Detected from
+                torch.distributed or the launcher's environment (torchrun,
+                SLURM, MPI) if None. Pass it when those are not set, e.g. in a
+                function started by torch.multiprocessing.spawn.
         
         Returns:
             A dictionary with the status of seeding for each framework.
         
         Raises:
             ImportError: If the specified framework is not installed.
-            ValueError: If an invalid framework name is provided.
+            ValueError: If an invalid framework name is provided, or rank is
+                given without per_rank=True.
         
         Example:
             >>> gen = SeedHashGenerator("experiment_1")
             >>> gen.set_seed("torch")  # Seed PyTorch
             >>> gen.set_seed("all")    # Seed all available frameworks
+            >>> gen.set_seed("torch", per_rank=True)  # One seed per process
         """
         valid_frameworks = ["torch", "tensorflow", "numpy", "all", "python"]
         if framework not in valid_frameworks:
@@ -143,6 +228,11 @@ class SeedHashGenerator:
                 f"Invalid framework '{framework}'. "
                 f"Must be one of: {valid_frameworks}"
             )
+        
+        if rank is not None and not per_rank:
+            raise ValueError("rank is only used with per_rank=True")
+        
+        seed = self.rank_seed(rank) if per_rank else self.seed_number
         
         status = {}
         frameworks_to_seed = []
@@ -157,13 +247,13 @@ class SeedHashGenerator:
         
         # Seed Python's random module (always)
         if "python" in frameworks_to_seed:
-            random.seed(self.seed_number)
+            random.seed(seed)
             status["python"] = "seeded"
         
         # Seed NumPy
         if "numpy" in frameworks_to_seed:
             if NUMPY_AVAILABLE:
-                np.random.seed(self.seed_number)
+                np.random.seed(seed)
                 status["numpy"] = "seeded"
             elif framework == "numpy":
                 raise ImportError(
@@ -175,12 +265,12 @@ class SeedHashGenerator:
         # Seed PyTorch
         if "torch" in frameworks_to_seed:
             if TORCH_AVAILABLE:
-                torch.manual_seed(self.seed_number)
+                torch.manual_seed(seed)
                 
-                # Seed CUDA if available
+                # Seed every visible GPU, not just the current device, so
+                # the result does not depend on torch.cuda.set_device()
                 if torch.cuda.is_available():
-                    torch.cuda.manual_seed(self.seed_number)
-                    torch.cuda.manual_seed_all(self.seed_number)
+                    torch.cuda.manual_seed_all(seed)
                 
                 # Enable deterministic mode if requested
                 if deterministic:
@@ -206,7 +296,7 @@ class SeedHashGenerator:
         # Seed TensorFlow
         if "tensorflow" in frameworks_to_seed:
             if TF_AVAILABLE:
-                tf.random.set_seed(self.seed_number)
+                tf.random.set_seed(seed)
                 
                 # Set deterministic operations if requested. TF 2.8+ ignores
                 # TF_DETERMINISTIC_OPS in favour of enable_op_determinism().
@@ -227,11 +317,19 @@ class SeedHashGenerator:
         
         return status
     
-    def seed_all(self, deterministic: bool = True) -> dict:
+    def seed_all(
+        self,
+        deterministic: bool = True,
+        per_rank: bool = False,
+        rank: Optional[int] = None
+    ) -> dict:
         """Convenience method to seed all available frameworks.
         
         Args:
             deterministic: If True, enable deterministic algorithms where applicable.
+            per_rank: If True, use a different seed in each process of a
+                distributed job (see set_seed).
+            rank: Global rank to use with per_rank=True (see set_seed).
         
         Returns:
             A dictionary with the status of seeding for each framework.
@@ -241,7 +339,9 @@ class SeedHashGenerator:
             >>> status = gen.seed_all()
             >>> print(status)
         """
-        return self.set_seed("all", deterministic=deterministic)
+        return self.set_seed(
+            "all", deterministic=deterministic, per_rank=per_rank, rank=rank
+        )
     
     def generate_seeds(self, count: int) -> List[int]:
         """Generate a list of random seed numbers.
