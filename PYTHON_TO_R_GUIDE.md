@@ -1,7 +1,7 @@
 # Python to R Conversion Guide for seedhash
 # ============================================
 # Reference document for converting Python seedhash features to R
-# Last Updated: October 31, 2025
+# Last Updated: September 30, 2026
 
 ## Table of Contents
 1. [Language Differences Overview](#language-differences)
@@ -39,7 +39,7 @@
 **Python:**
 ```python
 # Unlimited precision - any integer size works
-hash_int = int(hash_hex[:8], 16)  # Can be any size
+hash_int = int(hash_hex, 16) % 2**32  # 0 to 2^32 - 1
 min_value = -10**33  # Works fine
 max_value = 10**33   # Works fine
 range_size = max_value - min_value  # No problem
@@ -47,16 +47,18 @@ range_size = max_value - min_value  # No problem
 
 **R - CRITICAL LIMITATIONS:**
 ```r
-# 32-bit signed integer limit: -2,147,483,648 to 2,147,483,647
-hash_int <- strtoi(substr(hash_hex, 1, 7), base = 16)  # Use 7 chars, not 8!
-min_value <- -1e9    # Safe: -1,000,000,000
-max_value <- 1e9     # Safe:  1,000,000,000
-range_size <- max_value - min_value + 1  # Must be <= 2,147,483,647
+# 32-bit signed integer limit: -2,147,483,647 to 2,147,483,647 (-2^31 is NA)
+# The last 8 hex digits are the digest mod 2^32; build them as a double
+hash_int <- strtoi(substr(hash_hex, 25, 28), 16L) * 65536 +
+  strtoi(substr(hash_hex, 29, 32), 16L)
+min_value <- 0            # Same defaults as Python
+max_value <- 2^31 - 1
+range_size <- as.numeric(max_value) - min_value + 1  # Compute in doubles
 ```
 
 **Key Conversion Rules:**
-1. **Hex to Integer**: Use max 7 hex characters (28 bits) in R, not 8
-2. **Default Ranges**: Use -1e9 to 1e9 in R (not 0 to 2^31-1)
+1. **Hex to Integer**: Match Python's `% 2**32` by reading the last 8 hex digits as a double; `strtoi()` on all 8 at once returns NA above 2^31 - 1
+2. **Default Ranges**: Keep Python's 0 to 2^31-1; `sample.int()` accepts ranges wider than `.Machine$integer.max`
 3. **Range Validation**: Check BOTH values AND total range span
 4. **Coercion**: Always validate BEFORE `as.integer()` conversion
 
@@ -86,20 +88,21 @@ seeds = [random.randint(min_value, max_value) for _ in range(count)]
 
 **R:**
 ```r
-set.seed(seed_number)
-range_size <- as.numeric(max_value) - as.numeric(min_value) + 1
+# set.seed() only accepts R integers, but seed_number can be up to 2^32 - 1:
+# reinterpret it as a signed 32-bit value
+rng_seed <- if (seed_number >= 2^31) seed_number - 2^32 else seed_number
+set.seed(rng_seed, kind = "Mersenne-Twister", normal.kind = "Inversion",
+         sample.kind = "Rejection")  # same stream whatever RNGkind() is
 
-# CRITICAL: Validate range_size
-if (range_size > .Machine$integer.max) {
-  stop("Range is too large. Maximum range size is ", .Machine$integer.max)
-}
-
-random_numbers <- sample.int(
-  n = as.integer(range_size),
-  size = count,
-  replace = TRUE
-) + min_value - 1
+# Work in doubles: sample.int() accepts ranges of up to 2^32 - 1 values,
+# but min_value + draw can overflow R's integer type
+range_size <- as.numeric(max_value) - min_value + 1
+random_numbers <- as.integer(
+  sample.int(range_size, size = count, replace = TRUE) - 1 + min_value
+)
 ```
+
+The package also restores the caller's `.Random.seed` afterwards, so `generate_seeds()` does not change the user's random stream.
 
 ---
 
@@ -141,144 +144,53 @@ class SeedHashGenerator:
 
 ### R Class Structure (R6)
 
-**R (R/seedhash.R):**
+The full implementation is in [R/R/seedhash.R](R/R/seedhash.R). Its structure:
+
 ```r
 #' @export
 SeedHashGenerator <- R6::R6Class(
   "SeedHashGenerator",
-  
-  # Public fields (like Python attributes)
+
   public = list(
-    #' @field input_string The input string
-    input_string = NULL,
-    
-    #' @field min_value Minimum value
-    min_value = NULL,
-    
-    #' @field max_value Maximum value
-    max_value = NULL,
-    
-    #' @field seed_number The integer seed
-    seed_number = NULL,
-    
-    #' @description Initialize (Python's __init__)
-    #' @param input_string The string to hash
-    #' @param min_value Minimum value (default: -1e9)
-    #' @param max_value Maximum value (default: 1e9)
-    initialize = function(input_string, min_value = -1e9, max_value = 1e9) {
-      # Validate string
-      if (!is.character(input_string) || length(input_string) != 1) {
-        stop("input_string must be a single character string")
-      }
-      
-      if (nchar(input_string) == 0) {
-        stop("input_string cannot be empty")
-      }
-      
-      self$input_string <- input_string
-      
-      # Validate range BEFORE converting to integer
-      if (!is.numeric(min_value) || !is.numeric(max_value)) {
-        stop("min_value and max_value must be numeric")
-      }
-      
-      if (min_value >= max_value) {
-        stop(sprintf("min_value (%.0f) must be less than max_value (%.0f)",
-                    min_value, max_value))
-      }
-      
-      # Check R's integer range limits
-      max_int <- 2^31 - 1
-      min_int <- -2^31
-      
-      if (min_value < min_int || min_value > max_int) {
-        stop(sprintf("min_value (%.0f) is outside R's integer range [%d, %d]",
-                    min_value, min_int, max_int))
-      }
-      
-      if (max_value < min_int || max_value > max_int) {
-        stop(sprintf("max_value (%.0f) is outside R's integer range [%d, %d]",
-                    max_value, min_int, max_int))
-      }
-      
-      # Now safe to convert
-      self$min_value <- as.integer(min_value)
-      self$max_value <- as.integer(max_value)
-      
-      # Generate seed
-      self$seed_number <- private$generate_seed()
+    # Python's __init__, with the same defaults as Python
+    initialize = function(input_string, min_value = 0, max_value = 2^31 - 1) {
+      # Validate everything BEFORE as.integer(): a single string, whole
+      # numbers, no NA, bounds within +/-(2^31 - 1) (as.integer(-2^31) is
+      # NA), min_value < max_value
+      ...
+      private$.hash <- digest::digest(enc2utf8(input_string), algo = "md5",
+                                      serialize = FALSE)
+      private$.seed_number <- private$hash_to_seed(private$.hash)
     },
-    
-    #' @description Generate random seeds
-    #' @param count Number of seeds to generate
-    #' @return Vector of random integers
-    generate_seeds = function(count) {
-      if (!is.numeric(count) || length(count) != 1) {
-        stop("count must be a single numeric value")
-      }
-      
-      count <- as.integer(count)
-      
-      if (count <= 0) {
-        stop("count must be a positive integer")
-      }
-      
-      # Set seed
-      set.seed(self$seed_number)
-      
-      # Calculate range size - handle potential overflow
-      range_size <- as.numeric(self$max_value) - as.numeric(self$min_value) + 1
-      
-      # Validate range size
-      if (range_size > .Machine$integer.max) {
-        stop("Range is too large. Maximum range size is ", .Machine$integer.max)
-      }
-      
-      # Generate random numbers
-      random_numbers <- sample.int(
-        n = as.integer(range_size),
-        size = count,
-        replace = TRUE
-      ) + self$min_value - 1
-      
-      return(random_numbers)
-    },
-    
-    #' @description Get MD5 hash
-    #' @return MD5 hash as hexadecimal string
-    get_hash = function() {
-      return(digest::digest(self$input_string, algo = "md5", serialize = FALSE))
-    },
-    
-    #' @description Print method (Python's __str__)
-    #' @param ... Additional arguments (unused)
-    print = function(...) {
-      cat(sprintf("SeedHashGenerator:\n"))
-      cat(sprintf("  Input String: '%s'\n", self$input_string))
-      cat(sprintf("  Range: [%d, %d]\n", self$min_value, self$max_value))
-      cat(sprintf("  Seed Number: %d\n", self$seed_number))
-      cat(sprintf("  MD5 Hash: %s\n", self$get_hash()))
-      invisible(self)
-    }
+
+    generate_seeds = function(count) ...,  # see Random Number Generation
+    set_seed = function() ...,             # Python's set_seed("python")
+    get_hash = function() private$.hash,
+    print = function(...) ...              # format seed_number with %.0f
   ),
-  
-  # Private methods (Python's _method)
-  private = list(
-    generate_seed = function() {
-      # Get MD5 hash
-      hash_value <- digest::digest(self$input_string, algo = "md5", serialize = FALSE)
-      
-      # Convert hex to integer
-      # CRITICAL: Use 7 chars (28 bits) not 8 (32 bits) to avoid overflow
-      seed <- strtoi(substr(hash_value, 1, 7), base = 16)
-      
-      # Validate result
-      if (is.na(seed)) {
-        stop("Failed to generate valid seed from input string")
-      }
-      
-      return(seed)
+
+  # Read-only fields, like Python attributes. Plain public fields could be
+  # reassigned without validation. Document them with @field.
+  active = list(
+    input_string = function(value) {
+      if (!missing(value)) stop("input_string is read-only", call. = FALSE)
+      private$.input_string
     }
+    # min_value, max_value and seed_number follow the same pattern
+  ),
+
+  private = list(
+    .input_string = NULL, .min_value = NULL, .max_value = NULL,
+    .hash = NULL, .seed_number = NULL,
+
+    # Python: int(hash, 16) % 2**32. The result can exceed R's integer
+    # range, so build it as a double from the last 8 hex digits
+    hash_to_seed = function(hash) {
+      strtoi(substr(hash, 25, 28), 16L) * 65536 +
+        strtoi(substr(hash, 29, 32), 16L)
+    }
+    # rng_seed() maps seed_number into set.seed()'s integer range, and
+    # with_seed() restores the caller's RNG state after generate_seeds()
   )
 )
 ```
@@ -293,7 +205,7 @@ SeedHashGenerator <- R6::R6Class(
 |-----------|--------|---|
 | Import | `import hashlib` | `library(digest)` |
 | Hash string | `hashlib.md5(s.encode()).hexdigest()` | `digest::digest(s, algo="md5", serialize=FALSE)` |
-| Hex to int | `int(hex_str[:8], 16)` | `strtoi(substr(hex_str, 1, 7), base=16)` ⚠️ Use 7 not 8! |
+| Hash to seed | `int(hex_str, 16) % 2**32` | `strtoi(substr(hex_str, 25, 28), 16) * 65536 + strtoi(substr(hex_str, 29, 32), 16)` |
 
 ### Random Generation
 
@@ -539,20 +451,20 @@ install.packages("seedhash")
 1. **Integer Limits** ⚠️ CRITICAL
    - Python: Unlimited ✅
    - R: ±2.1 billion ⚠️
-   - Solution: Validate BEFORE conversion, use smaller defaults (-1e9 to 1e9)
-   - **Real Issue**: Used full range 0 to 2^31-1, caused overflow in generate_seeds()
+   - Solution: Validate BEFORE conversion, and do range arithmetic in doubles
+   - **Real Issue**: `sample.int(...) + min_value` in integers overflowed to NA at the top of the range
 
 2. **Hex Conversion** ⚠️ CRITICAL FIX
-   - Python: `int(hash[:8], 16)` works
-   - R: `strtoi(substr(hash, 1, 7), 16)` - use 7 not 8!
-   - Reason: 8 hex chars = 32 bits can overflow signed int
-   - **Real Issue**: 8 chars caused NA values, set.seed() failed with "not a valid integer"
+   - Python: `int(hash, 16) % 2**32`
+   - R: last 8 hex digits built as a double, then mapped into signed-int range for `set.seed()`
+   - Reason: `strtoi()` on 8 hex digits returns NA above 2^31 - 1
+   - **Real Issue**: an earlier workaround used the first 7 hex digits, which gave different seeds from Python
 
 3. **Default Ranges** ⚠️ CRITICAL FIX
    - Python: Can use any range
-   - R: Use -1e9 to 1e9 (not 0 to 2^31-1)
-   - Reason: Range SPAN must also fit in integer
-   - **Real Issue**: Default 0 to 2^31-1 worked for initialization but failed in generate_seeds()
+   - R: Use the same 0 to 2^31-1 default; `sample.int()` handles spans above `.Machine$integer.max`
+   - Reason: Different defaults make the two entry points and the two languages disagree
+   - **Real Issue**: A "range too large" check made the 0 to 2^31-1 default fail in generate_seeds()
 
 4. **Package Installation** ⚠️ IMPORTANT
    - Python: pip handles everything reliably
@@ -610,9 +522,9 @@ When adding new Python features to R:
 - [ ] Test with edge cases: -2^31, 2^31-1, ranges > 2.1B
 
 **Code Implementation:**
-- [ ] Use 7 hex characters (not 8) for hash-to-int conversion
-- [ ] Set safe defaults: -1e9 to 1e9 (not 0 to 2^31-1)
-- [ ] Add range size validation before sample.int()
+- [ ] Derive the seed exactly as Python does (digest mod 2^32) and test against Python's values
+- [ ] Use the same defaults as Python (0 to 2^31-1)
+- [ ] Do range arithmetic in doubles before sample.int()
 - [ ] Provide clear error messages with sprintf()
 - [ ] Use R6 class structure properly (self$field, not self.field)
 
@@ -692,10 +604,10 @@ When adding new Python features to R:
 ### Key Takeaways from This Project
 
 1. **Always use pak for GitHub R installations** - saves hours of debugging
-2. **7 hex characters, not 8** - prevents integer overflow in R
-3. **Default to -1e9 to 1e9** - safe range that works for most use cases
+2. **Match Python's seed exactly** - digest mod 2^32, built as a double, tested against Python's values
+3. **Keep Python's defaults (0 to 2^31-1)** - compute in doubles instead of shrinking the range
 4. **Validate before conversion** - catch errors before they become NAs
-5. **Test the range span** - not just individual min/max values
+5. **Do range arithmetic in doubles** - `sample.int()` accepts large ranges, integer addition overflows
 6. **Separate Python/ and R/** - keeps dual-language projects organized
 7. **Clear error messages** - saves user frustration
 8. **Document limitations** - R users need to know about integer constraints
@@ -704,12 +616,12 @@ When adding new Python features to R:
 
 | Issue | Symptom | Solution |
 |-------|---------|----------|
-| 8 hex chars | "not a valid integer" | Use 7 chars: `substr(hash, 1, 7)` |
-| Large default range | "Range is too large" | Use -1e9 to 1e9, not 0 to 2^31-1 |
+| 8 hex chars via `strtoi()` | NA, "not a valid integer" | Build the last 8 hex digits as a double; map into signed range for `set.seed()` |
+| 7 hex chars | Seeds differ from Python | Use the digest mod 2^32, as Python does |
+| Integer overflow near 2^31-1 | NA seeds | Compute `min_value + draw` in doubles |
 | devtools SSL error | "cannot open URL" | Use pak instead of devtools |
 | Silent NA conversion | Cryptic errors later | Validate BEFORE as.integer() |
-| Range overflow | sample.int() fails | Check range SPAN, not just values |
-| Duplicate @field | roxygen2 warnings | Use @description for R6 fields |
+| R6 fields documented with @description | Field docs attached to the next method | Use @field, also for active bindings |
 | Corrupted lazy-load | Package won't load | Remove pkg dir, clean install |
 
 ---
@@ -823,9 +735,18 @@ if (min_value < -2^31 || min_value > 2^31 - 1) {
 self$min_value <- as.integer(min_value)
 ```
 
+## Fixes Applied September 30, 2026
+
+These supersede Fixes #1 to #3 above:
+
+- **Seed matches Python**: the first 7 hex digits gave different seeds from Python. The seed is now the digest mod 2^32 (the last 8 hex digits, built as a double), so `seed_number` is identical in both languages.
+- **Default range back to 0 to 2^31-1**: `sample.int()` accepts ranges wider than `.Machine$integer.max`, so the -1e9 to 1e9 workaround and the "Range is too large" check were removed. Draws are computed in doubles to avoid overflow.
+- **`set_seed()`**: `seed_number` can exceed R's integer range, so it is mapped into signed-integer range before `set.seed()`.
+- **RNG state**: `generate_seeds()` pins the RNG kind and restores the caller's `.Random.seed`.
+
 ---
 
-**Last Updated**: October 31, 2025 (Final)  
+**Last Updated**: September 30, 2026  
 **Version**: 2.0  
 **Status**: Production-ready with all fixes applied  
 **Repository**: https://github.com/melhzy/seedhash

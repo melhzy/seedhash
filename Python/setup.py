@@ -23,26 +23,26 @@ setup(
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Topic :: Scientific/Engineering",
     ],
-    python_requires=">=3.7",
+    python_requires=">=3.8",
     install_requires=[
         # No required dependencies - uses only Python standard library
     ],
     extras_require={
-        "torch": ["torch>=1.7.0"],
+        "torch": ["torch>=1.11"],
         "tensorflow": ["tensorflow>=2.0.0"],
         "numpy": ["numpy>=1.19.0"],
         "pandas": ["pandas>=1.3.0"],
         "experiment": ["pandas>=1.3.0", "numpy>=1.19.0"],  # For experiment management
         "all": [
-            "torch>=1.7.0",
+            "torch>=1.11",
             "tensorflow>=2.0.0",
             "numpy>=1.19.0",
             "pandas>=1.3.0",

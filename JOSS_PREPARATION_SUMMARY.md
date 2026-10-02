@@ -110,10 +110,11 @@ I've prepared SeedHash for submission to the Journal of Open Source Software (JO
 6. **Verify All Tests Run**
    ```bash
    # Python
-   pytest test_sampling_methods.py test_md5_usage.py test_dl_seeding.py -v
+   pytest test_sampling_methods.py test_md5_usage.py test_dl_seeding.py test_correctness.py -v
    
    # R
-   Rscript R/tests/test_seedhash.R
+   R CMD INSTALL R
+   Rscript -e 'testthat::test_dir("R/tests/testthat", package = "seedhash", load_package = "installed")'
    ```
 
 7. **Add Test Coverage Badge** (optional but recommended)

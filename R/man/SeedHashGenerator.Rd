@@ -4,17 +4,21 @@
 \alias{SeedHashGenerator}
 \title{SeedHash Generator}
 \description{
-SeedHash Generator
-
-SeedHash Generator
-}
-\details{
 Generate deterministic random seeds from string input using MD5 hashing.
 This class allows users to generate reproducible sequences of random numbers
 by hashing an input string and using it as a seed for R's random number generator.
+
+The seed number is the MD5 digest of the UTF-8 encoded input string modulo
+2^32, the same algorithm the Python package uses, so a given string has the
+same \code{seed_number} in both languages. The seeds returned by
+\code{generate_seeds()} come from R's own random number generator and
+therefore differ from the ones the Python package returns.
+
+\code{generate_seeds()} always uses the Mersenne-Twister generator with the
+"Rejection" sampler, whatever \code{RNGkind()} is set to, and restores the
+caller's random number generator state before returning.
 }
 \examples{
-\donttest{
 # Create a generator with default range
 gen <- SeedHashGenerator$new("Shalini")
 
@@ -30,120 +34,150 @@ print(seeds_custom)
 # Get the MD5 hash
 hash_value <- gen$get_hash()
 print(hash_value)
-}
 
+}
+\section{Active bindings}{
+  \if{html}{\out{<div class="r6-active-bindings">}}
+  \describe{
+    \item{\code{input_string}}{The input string for seed generation (read-only)}
+
+    \item{\code{min_value}}{Minimum value for random number range, inclusive (read-only)}
+
+    \item{\code{max_value}}{Maximum value for random number range, inclusive (read-only)}
+
+    \item{\code{seed_number}}{The seed derived from hashing, a whole number in
+[0, 2^32 - 1] stored as a double because it can exceed R's integer
+range (read-only)}
+  }
+  \if{html}{\out{</div>}}
 }
 \section{Methods}{
 \subsection{Public methods}{
-\itemize{
-\item \href{#method-SeedHashGenerator-new}{\code{SeedHashGenerator$new()}}
-\item \href{#method-SeedHashGenerator-generate_seeds}{\code{SeedHashGenerator$generate_seeds()}}
-\item \href{#method-SeedHashGenerator-get_hash}{\code{SeedHashGenerator$get_hash()}}
-\item \href{#method-SeedHashGenerator-print}{\code{SeedHashGenerator$print()}}
-\item \href{#method-SeedHashGenerator-clone}{\code{SeedHashGenerator$clone()}}
-}
+  \itemize{
+    \item \href{#method-SeedHashGenerator-initialize}{\code{SeedHashGenerator$new()}}
+    \item \href{#method-SeedHashGenerator-generate_seeds}{\code{SeedHashGenerator$generate_seeds()}}
+    \item \href{#method-SeedHashGenerator-set_seed}{\code{SeedHashGenerator$set_seed()}}
+    \item \href{#method-SeedHashGenerator-get_hash}{\code{SeedHashGenerator$get_hash()}}
+    \item \href{#method-SeedHashGenerator-print}{\code{SeedHashGenerator$print()}}
+    \item \href{#method-SeedHashGenerator-clone}{\code{SeedHashGenerator$clone()}}
+  }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-SeedHashGenerator-new"></a>}}
-\if{latex}{\out{\hypertarget{method-SeedHashGenerator-new}{}}}
-\subsection{Method \code{new()}}{
-The input string for seed generation
-
-
-Minimum value for random number range
-
-
-Maximum value for random number range
-
-
-The integer seed derived from hashing
-
-
-Initialize the SeedHashGenerator
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SeedHashGenerator$new(input_string, min_value = 0, max_value = 2^31 - 1)}\if{html}{\out{</div>}}
+\if{html}{\out{<a id="method-SeedHashGenerator-initialize"></a>}}
+\if{latex}{\out{\hypertarget{method-SeedHashGenerator-initialize}{}}}
+\subsection{\code{SeedHashGenerator$new()}}{
+  Initialize the SeedHashGenerator
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{SeedHashGenerator$new(input_string, min_value = 0, max_value = 2^31 - 1)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{input_string}}{The string to hash for seed generation}
+      \item{\code{min_value}}{Minimum value for random number range, inclusive (default: 0)}
+      \item{\code{max_value}}{Maximum value for random number range, inclusive (default: 2^31 - 1)}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    A new SeedHashGenerator object
+  }
 }
 
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{input_string}}{The string to hash for seed generation}
-
-\item{\code{min_value}}{Minimum value for random number range (default: 0)}
-
-\item{\code{max_value}}{Maximum value for random number range (default: 2^31 - 1)}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-A new SeedHashGenerator object
-}
-}
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-SeedHashGenerator-generate_seeds"></a>}}
 \if{latex}{\out{\hypertarget{method-SeedHashGenerator-generate_seeds}{}}}
-\subsection{Method \code{generate_seeds()}}{
-Generate a list of random seed numbers
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SeedHashGenerator$generate_seeds(count)}\if{html}{\out{</div>}}
+\subsection{\code{SeedHashGenerator$generate_seeds()}}{
+  Generate a list of random seed numbers
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{SeedHashGenerator$generate_seeds(count)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{count}}{The number of random seeds to generate}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    An integer vector of random seeds within the specified range
+  }
 }
 
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{count}}{The number of random seeds to generate}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-SeedHashGenerator-set_seed"></a>}}
+\if{latex}{\out{\hypertarget{method-SeedHashGenerator-set_seed}{}}}
+\subsection{\code{SeedHashGenerator$set_seed()}}{
+  Seed R's random number generator from the input string, the R
+counterpart of Python's \code{set_seed("python")}. Use this instead of
+\code{set.seed(seed_number)}: \code{seed_number} can exceed R's integer
+range, which \code{set.seed()} rejects, so it is first reinterpreted as
+a signed 32-bit integer. The current \code{RNGkind()} is kept.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{SeedHashGenerator$set_seed()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The generator, invisibly
+  }
 }
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-A vector of random integers within the specified range
-}
-}
+
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-SeedHashGenerator-get_hash"></a>}}
 \if{latex}{\out{\hypertarget{method-SeedHashGenerator-get_hash}{}}}
-\subsection{Method \code{get_hash()}}{
-Get the MD5 hash of the input string
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SeedHashGenerator$get_hash()}\if{html}{\out{</div>}}
+\subsection{\code{SeedHashGenerator$get_hash()}}{
+  Get the MD5 hash of the input string
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{SeedHashGenerator$get_hash()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    The MD5 hash as a hexadecimal string
+  }
 }
 
-\subsection{Returns}{
-The MD5 hash as a hexadecimal string
-}
-}
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-SeedHashGenerator-print"></a>}}
 \if{latex}{\out{\hypertarget{method-SeedHashGenerator-print}{}}}
-\subsection{Method \code{print()}}{
-Print method for SeedHashGenerator
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SeedHashGenerator$print(...)}\if{html}{\out{</div>}}
+\subsection{\code{SeedHashGenerator$print()}}{
+  Print method for SeedHashGenerator
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{SeedHashGenerator$print(...)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{...}}{Additional arguments (unused)}
+    }
+    \if{html}{\out{</div>}}
+  }
 }
 
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{...}}{Additional arguments (unused)}
-}
-\if{html}{\out{</div>}}
-}
-}
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-SeedHashGenerator-clone"></a>}}
 \if{latex}{\out{\hypertarget{method-SeedHashGenerator-clone}{}}}
-\subsection{Method \code{clone()}}{
-The objects of this class are cloneable with this method.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SeedHashGenerator$clone(deep = FALSE)}\if{html}{\out{</div>}}
+\subsection{\code{SeedHashGenerator$clone()}}{
+  The objects of this class are cloneable with this method.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{SeedHashGenerator$clone(deep = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{deep}}{Whether to make a deep clone.}
+    }
+    \if{html}{\out{</div>}}
+  }
 }
 
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{deep}}{Whether to make a deep clone.}
-}
-\if{html}{\out{</div>}}
-}
-}
 }

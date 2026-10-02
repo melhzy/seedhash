@@ -112,7 +112,9 @@ R/
 ├── examples/
 │   └── example_usage.R    # Examples ✅
 └── tests/
-    └── test_seedhash.R    # Tests ✅
+    ├── testthat.R
+    └── testthat/
+        └── test-seedhash.R  # Tests ✅
 ```
 
 ## 🔍 Quick Reference

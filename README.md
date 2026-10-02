@@ -1,6 +1,6 @@
 # SeedHash: MD5-Based Deterministic Random Seed Generator
 
-[![Python Version](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/)
+[![Python Version](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![R Version](https://img.shields.io/badge/R-3.5+-blue.svg)](https://www.r-project.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://github.com/melhzy/seedhash/workflows/Tests/badge.svg)](https://github.com/melhzy/seedhash/actions)
@@ -362,7 +362,9 @@ R/
 │   └── seedhash.R           # R package implementation
 ├── man/                     # R documentation
 ├── tests/
-│   └── test_seedhash.R      # R tests
+│   ├── testthat.R           # testthat entry point
+│   └── testthat/
+│       └── test-seedhash.R  # R tests
 ├── examples/
 │   └── example_usage.R
 ├── DESCRIPTION              # R package metadata
@@ -382,11 +384,13 @@ Root files:
 ### Running Tests
 
 ```bash
-# Install in development mode
-pip install -e .
+# Python: install in development mode, then run the tests from the repository root
+pip install -e "Python[experiment]" pytest
+pytest test_*.py -v
 
-# Run the example script
-python examples/demo.py
+# R: install the package, then run its testthat suite
+R CMD INSTALL R
+Rscript -e 'testthat::test_dir("R/tests/testthat", package = "seedhash", load_package = "installed")'
 ```
 
 ### Building the Package

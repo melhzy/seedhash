@@ -97,20 +97,22 @@ print(gen)
 - **R6 class** for object-oriented design
 - **Reproducible** seeds based on string input
 - **Safe integer handling** with clear error messages
-- **Default range**: -1 billion to +1 billion
+- **Default range**: 0 to 2^31 - 1 (same as Python)
 - **Dependencies**: R6, digest
 
 ## Important: R Integer Limitations
 
-⚠️ R uses 32-bit signed integers: **-2,147,483,648 to 2,147,483,647**
+⚠️ R uses 32-bit signed integers, so bounds must lie in **-2,147,483,647 to 2,147,483,647** (`-2^31` is NA in R)
 
 ```r
-# ✅ This works
-gen <- SeedHashGenerator$new("test", -1e9, 1e9)
+# ✅ This works (up to the full range)
+gen <- SeedHashGenerator$new("test", -(2^31 - 1), 2^31 - 1)
 
-# ❌ This fails (range too large)
+# ❌ This fails (values outside R's integer range)
 gen <- SeedHashGenerator$new("test", -10^33, 10^33)
 ```
+
+`seed_number` can be larger than 2^31 - 1, so seed R's own generator with `gen$set_seed()` rather than `set.seed(gen$seed_number)`.
 
 See [INTEGER_RANGE_SOLUTION.md](INTEGER_RANGE_SOLUTION.md) for details.
 
@@ -141,8 +143,8 @@ devtools::check()
 
 When developing R features based on Python:
 - Validate integers BEFORE `as.integer()` conversion
-- Use 7 hex characters (not 8) for hash-to-int
-- Default range: -1e9 to 1e9 (not full int range)
+- Derive the seed exactly as Python does (MD5 digest mod 2^32) and test against Python's values
+- Use Python's default range (0 to 2^31 - 1) and do range arithmetic in doubles
 - Test edge cases around ±2^31
 
 See [PYTHON_TO_R_GUIDE.md](../PYTHON_TO_R_GUIDE.md) for complete conversion guide.
@@ -162,5 +164,5 @@ See [SUBMISSION_STATUS.md](SUBMISSION_STATUS.md) for current status.
 
 **Version**: 0.1.0  
 **License**: MIT  
-**R**: >= 3.5.0  
+**R**: >= 3.6.0  
 **Status**: Ready for CRAN submission

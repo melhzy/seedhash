@@ -2,3 +2,5 @@
 
 export(SeedHashGenerator)
 export(create_seedhash)
+importFrom(R6,R6Class)
+importFrom(digest,digest)

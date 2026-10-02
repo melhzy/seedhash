@@ -676,9 +676,11 @@ python examples/advanced_ml_paradigms.py
 
 ## Testing
 
+The tests live in the repository root:
+
 ```bash
-cd Python
-pytest tests/
+pip install -e "Python[experiment]" pytest
+pytest test_*.py -v
 ```
 
 ## Building
@@ -698,4 +700,4 @@ For converting Python features to R, see [PYTHON_TO_R_GUIDE.md](../PYTHON_TO_R_G
 
 **Version**: 0.3.0  
 **License**: MIT  
-**Python**: >=3.7
+**Python**: >=3.8

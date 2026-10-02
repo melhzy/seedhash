@@ -164,16 +164,17 @@ library(seedhash)
 
 ### ⚠️ Important: R Integer Limitations
 
-R uses 32-bit signed integers with these limits:
-- **Minimum**: `-2,147,483,648`
+R uses 32-bit signed integers, so `min_value` and `max_value` must be whole numbers between:
+- **Minimum**: `-2,147,483,647` (`-2^31` itself cannot be stored as an R integer)
 - **Maximum**: `2,147,483,647`
-- **Recommended range**: `-1e9` to `1e9` (default)
+- **Default range**: `0` to `2^31 - 1`, the same as Python
 
 ```r
-# ✅ This works
-gen <- SeedHashGenerator$new("test", -1e9, 1e9)
+# ✅ These work (the full range too)
+gen <- SeedHashGenerator$new("test")
+gen <- SeedHashGenerator$new("test", -(2^31 - 1), 2^31 - 1)
 
-# ❌ This fails (values too large)
+# ❌ This fails (values outside R's integer range)
 gen <- SeedHashGenerator$new("test", -10^33, 10^33)
 ```
 
@@ -190,7 +191,7 @@ See [R/INSTALL.md](https://github.com/melhzy/seedhash/tree/main/R/INSTALL.md) fo
 | Feature | Python | R |
 |---------|--------|---|
 | **Integer Range** | Unlimited ✅ | ±2.1 billion ⚠️ |
-| **Default Range** | -10^9 to 10^9 | -1e9 to 1e9 |
+| **Default Range** | 0 to 2^31 - 1 | 0 to 2^31 - 1 |
 | **Dependencies** | None (stdlib only) | R6, digest |
 | **Installation** | pip | pak (recommended) |
 | **Class System** | Native classes | R6 classes |
@@ -244,10 +245,10 @@ pip install git+https://github.com/melhzy/seedhash.git#subdirectory=Python
 pak::pkg_install("github::melhzy/seedhash/R")
 ```
 
-### R: "Range is too large"
+### R: "outside R's integer range"
 ```r
-# Use smaller range (within ±2.1 billion)
-gen <- SeedHashGenerator$new("test", -1e9, 1e9)
+# Keep both bounds within ±2,147,483,647
+gen <- SeedHashGenerator$new("test", -(2^31 - 1), 2^31 - 1)
 ```
 
 ### R: Package installation corrupted

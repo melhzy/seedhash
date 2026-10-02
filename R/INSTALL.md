@@ -4,7 +4,7 @@
 
 Before installing the seedhash R package, ensure you have:
 
-1. **R** (version 3.5.0 or higher)
+1. **R** (version 3.6.0 or higher)
 2. **Required packages**: `R6`, `digest` (installed automatically)
 
 ## Method 1: Install from GitHub using pak ✅ RECOMMENDED
@@ -133,10 +133,8 @@ print(seeds)
 To run the test suite:
 
 ```r
-# If using source files directly
-source("d:/Github/seedhash/R/tests/test_seedhash.R")
-
-# Tests will run automatically and show results
+# From the repository root, after installing the package
+testthat::test_dir("R/tests/testthat", package = "seedhash", load_package = "installed")
 ```
 
 ## Running Examples
@@ -211,7 +209,7 @@ After successful installation:
 
 1. Read the [README.md](README.md) for usage examples
 2. Check out [example_usage.R](examples/example_usage.R) for comprehensive examples
-3. Run the test suite in [test_seedhash.R](tests/test_seedhash.R)
+3. Run the test suite in [test-seedhash.R](tests/testthat/test-seedhash.R)
 4. Read the documentation: `?SeedHashGenerator`
 
 ## Support
